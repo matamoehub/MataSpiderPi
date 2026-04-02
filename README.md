@@ -1,4 +1,5 @@
 # MataSpiderPi
+<<<<<<< HEAD
 
 MataSpiderPi is the Matamoe lesson and library repo for the Hiwonder SpiderPi Pro.
 
@@ -22,3 +23,6 @@ Lessons and libraries are organised around the SpiderPi Pro capability set:
 ## Upstream vendor source
 
 The original Hiwonder code is kept under `vendor/hiwonder_spiderpi/` so the SDKs, action groups, and advanced examples are available alongside the Matamoe wrappers.
+=======
+SpiderPi libraries and lessons
+>>>>>>> a2aeef6e9b700a077584aa5292df2335a255fadb
