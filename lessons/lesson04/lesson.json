@@ -1,0 +1,13 @@
+{
+  "id": "lesson04",
+  "title": "Lesson 4 - Robotic Arm Basics",
+  "description": "Move the arm, open the gripper, and place objects.",
+  "summary": "Move the arm, open the gripper, and place objects.",
+  "levels": [
+    {
+      "id": "level_1",
+      "title": "Level 1",
+      "entry": "Lesson04.ipynb"
+    }
+  ]
+}

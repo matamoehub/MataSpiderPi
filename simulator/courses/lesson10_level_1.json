@@ -1,0 +1,32 @@
+{
+  "id": "lesson10_level_1",
+  "title": "Sorting Mat",
+  "robot_start": {
+    "x": 0.0,
+    "y": -0.35,
+    "heading_deg": 0.0
+  },
+  "obstacles": [
+    {
+      "id": "sort_red",
+      "x": -0.18,
+      "y": 0.45,
+      "radius_m": 0.05,
+      "color_name": "red"
+    },
+    {
+      "id": "sort_green",
+      "x": 0.0,
+      "y": 0.6,
+      "radius_m": 0.05,
+      "color_name": "green"
+    },
+    {
+      "id": "sort_blue",
+      "x": 0.18,
+      "y": 0.45,
+      "radius_m": 0.05,
+      "color_name": "blue"
+    }
+  ]
+}

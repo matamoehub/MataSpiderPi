@@ -1,0 +1,25 @@
+{
+  "id": "lesson09_level_1",
+  "title": "Pick and Place Table",
+  "robot_start": {
+    "x": 0.0,
+    "y": -0.35,
+    "heading_deg": 0.0
+  },
+  "obstacles": [
+    {
+      "id": "pick_red",
+      "x": -0.12,
+      "y": 0.5,
+      "radius_m": 0.05,
+      "color_name": "red"
+    },
+    {
+      "id": "pick_blue",
+      "x": 0.12,
+      "y": 0.5,
+      "radius_m": 0.05,
+      "color_name": "blue"
+    }
+  ]
+}

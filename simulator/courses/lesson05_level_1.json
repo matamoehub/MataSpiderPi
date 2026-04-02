@@ -1,0 +1,32 @@
+{
+  "id": "lesson05_level_1",
+  "title": "Colour Vision Lab",
+  "robot_start": {
+    "x": 0.0,
+    "y": -0.3,
+    "heading_deg": 0.0
+  },
+  "obstacles": [
+    {
+      "id": "red_block",
+      "x": -0.15,
+      "y": 0.55,
+      "radius_m": 0.05,
+      "color_name": "red"
+    },
+    {
+      "id": "green_block",
+      "x": 0.0,
+      "y": 0.65,
+      "radius_m": 0.05,
+      "color_name": "green"
+    },
+    {
+      "id": "blue_block",
+      "x": 0.15,
+      "y": 0.55,
+      "radius_m": 0.05,
+      "color_name": "blue"
+    }
+  ]
+}

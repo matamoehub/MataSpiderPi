@@ -1,0 +1,13 @@
+{
+  "id": "lesson10",
+  "title": "Lesson 10 - Sorting Challenge",
+  "description": "Sort coloured objects into zones.",
+  "summary": "Sort coloured objects into zones.",
+  "levels": [
+    {
+      "id": "level_1",
+      "title": "Level 1",
+      "entry": "Lesson10.ipynb"
+    }
+  ]
+}

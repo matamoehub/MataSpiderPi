@@ -1,0 +1,13 @@
+{
+  "id": "lesson09",
+  "title": "Lesson 9 - Block Picking",
+  "description": "Pick up blocks with the arm and place them precisely.",
+  "summary": "Pick up blocks with the arm and place them precisely.",
+  "levels": [
+    {
+      "id": "level_1",
+      "title": "Level 1",
+      "entry": "Lesson09.ipynb"
+    }
+  ]
+}

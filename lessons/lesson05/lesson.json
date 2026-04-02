@@ -1,0 +1,13 @@
+{
+  "id": "lesson05",
+  "title": "Lesson 5 - Camera and Colour Vision",
+  "description": "Capture images and detect coloured targets.",
+  "summary": "Capture images and detect coloured targets.",
+  "levels": [
+    {
+      "id": "level_1",
+      "title": "Level 1",
+      "entry": "Lesson05.ipynb"
+    }
+  ]
+}

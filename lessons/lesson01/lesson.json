@@ -1,0 +1,18 @@
+{
+  "id": "lesson01",
+  "title": "Lesson 1 - Robot Demo",
+  "description": "Lesson 1 introduces SpiderPi with a beginner movement lesson plus a full demo notebook showing all major robot features.",
+  "summary": "Lesson 1 introduces SpiderPi with a beginner movement lesson plus a full demo notebook showing all major robot features.",
+  "levels": [
+    {
+      "id": "level_1",
+      "title": "Level 1 - Moving Around",
+      "entry": "Lesson01.ipynb"
+    },
+    {
+      "id": "demos",
+      "title": "Demos",
+      "entry": "Robot_Demo.ipynb"
+    }
+  ]
+}

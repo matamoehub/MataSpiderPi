@@ -1,0 +1,25 @@
+{
+  "id": "lesson08_level_1",
+  "title": "Avoidance Lane",
+  "robot_start": {
+    "x": 0.0,
+    "y": -0.45,
+    "heading_deg": 0.0
+  },
+  "obstacles": [
+    {
+      "id": "obs1",
+      "x": 0.0,
+      "y": 0.15,
+      "radius_m": 0.08,
+      "color_name": "blue"
+    },
+    {
+      "id": "obs2",
+      "x": -0.18,
+      "y": 0.45,
+      "radius_m": 0.08,
+      "color_name": "green"
+    }
+  ]
+}

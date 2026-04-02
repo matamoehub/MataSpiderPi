@@ -1,0 +1,13 @@
+{
+  "id": "lesson02",
+  "title": "Lesson 2 - Hexapod Movement",
+  "description": "Learn gait-style movement and side-stepping.",
+  "summary": "Learn gait-style movement and side-stepping.",
+  "levels": [
+    {
+      "id": "level_1",
+      "title": "Level 1",
+      "entry": "Lesson02.ipynb"
+    }
+  ]
+}

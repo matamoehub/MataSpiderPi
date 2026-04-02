@@ -1,0 +1,13 @@
+{
+  "id": "lesson13",
+  "title": "Lesson 13 - Rock Paper Scissors Vision",
+  "description": "Use MediaPipe hand recognition so SpiderPi can play rock, paper, scissors.",
+  "summary": "Use MediaPipe hand recognition so SpiderPi can play rock, paper, scissors.",
+  "levels": [
+    {
+      "id": "level_1",
+      "title": "Level 1 - Gesture Game",
+      "entry": "Lesson13.ipynb"
+    }
+  ]
+}

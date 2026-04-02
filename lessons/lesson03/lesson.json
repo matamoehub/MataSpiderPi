@@ -1,0 +1,13 @@
+{
+  "id": "lesson03",
+  "title": "Lesson 3 - Action Groups",
+  "description": "Use prebuilt motion sequences like wave, dance, attack, and kick.",
+  "summary": "Use prebuilt motion sequences like wave, dance, attack, and kick.",
+  "levels": [
+    {
+      "id": "level_1",
+      "title": "Level 1",
+      "entry": "Lesson03.ipynb"
+    }
+  ]
+}

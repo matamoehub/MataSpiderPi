@@ -1,0 +1,13 @@
+{
+  "id": "lesson07",
+  "title": "Lesson 7 - Face, Shape, and Line Tools",
+  "description": "Explore face detection, shape recognition, and patrol logic.",
+  "summary": "Explore face detection, shape recognition, and patrol logic.",
+  "levels": [
+    {
+      "id": "level_1",
+      "title": "Level 1",
+      "entry": "Lesson07.ipynb"
+    }
+  ]
+}

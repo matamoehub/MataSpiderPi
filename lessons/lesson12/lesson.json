@@ -1,0 +1,13 @@
+{
+  "id": "lesson12",
+  "title": "Lesson 12 - Creative Mission",
+  "description": "Design a mission using movement, arm, and vision together.",
+  "summary": "Design a mission using movement, arm, and vision together.",
+  "levels": [
+    {
+      "id": "level_1",
+      "title": "Level 1",
+      "entry": "Lesson12.ipynb"
+    }
+  ]
+}

@@ -1,0 +1,13 @@
+{
+  "id": "lesson08",
+  "title": "Lesson 8 - Obstacle Avoidance",
+  "description": "Read sonar and avoid obstacles safely.",
+  "summary": "Read sonar and avoid obstacles safely.",
+  "levels": [
+    {
+      "id": "level_1",
+      "title": "Level 1",
+      "entry": "Lesson08.ipynb"
+    }
+  ]
+}

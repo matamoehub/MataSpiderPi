@@ -1,0 +1,13 @@
+{
+  "id": "lesson11",
+  "title": "Lesson 11 - Kick and Carry",
+  "description": "Use SpiderPi for transport and kicking challenges.",
+  "summary": "Use SpiderPi for transport and kicking challenges.",
+  "levels": [
+    {
+      "id": "level_1",
+      "title": "Level 1",
+      "entry": "Lesson11.ipynb"
+    }
+  ]
+}

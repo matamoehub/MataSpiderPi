@@ -1,0 +1,18 @@
+{
+  "id": "lesson01_level_1",
+  "title": "SpiderPi Demo Arena",
+  "robot_start": {
+    "x": 0.0,
+    "y": -0.2,
+    "heading_deg": 0.0
+  },
+  "obstacles": [
+    {
+      "id": "red_ball",
+      "x": 0.0,
+      "y": 0.55,
+      "radius_m": 0.06,
+      "color_name": "red"
+    }
+  ]
+}
