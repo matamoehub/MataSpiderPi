@@ -6,6 +6,11 @@ from spiderpi_support import get_arm_ik, get_board
 GRIPPER_OPEN = 120
 GRIPPER_MID = 360
 GRIPPER_CLOSED = 600
+BASE_SERVO_ID = 21
+BASE_SERVO_CENTER = 500
+BASE_SERVO_DELTA = 90
+BASE_SERVO_MIN = 200
+BASE_SERVO_MAX = 800
 # Default SpiderPi arm poses tuned against the real robot:
 # - HOME should be a compact centered rest position
 # - LOOK should keep the camera centered and more upright
@@ -15,7 +20,6 @@ LOOK = (0, 10, 34)
 CARRY = (0, 15, 14)
 PLACE = (8, 16, 5)
 POSE_MOVETIME_MS = 4
-TURN_DELTA_X = 8
 
 
 class Arm:
@@ -32,6 +36,11 @@ class Arm:
         if self._board is None:
             raise RuntimeError('SpiderPi board unavailable')
         self._board.bus_servo_set_position(float(movetime_ms) / 1000.0, [[25, int(pulse)]])
+
+    def _set_bus_servo(self, servo_id: int, pulse: int, movetime_ms: int = 500):
+        if self._board is None:
+            raise RuntimeError('SpiderPi board unavailable')
+        self._board.bus_servo_set_position(float(movetime_ms) / 1000.0, [[int(servo_id), int(pulse)]])
 
     def open_gripper(self):
         self._set_gripper(GRIPPER_OPEN)
@@ -95,12 +104,18 @@ class Arm:
         return self.place_pose()
 
     def turn_left(self):
-        x, y, z = HOME
-        return self.move_to(x - TURN_DELTA_X, y, z, movetime_ms=POSE_MOVETIME_MS)
+        pulse = max(BASE_SERVO_MIN, min(BASE_SERVO_MAX, BASE_SERVO_CENTER + BASE_SERVO_DELTA))
+        self._set_bus_servo(BASE_SERVO_ID, pulse, movetime_ms=120)
+        return {"turn": "left", "servo": BASE_SERVO_ID, "pulse": pulse}
 
     def turn_right(self):
-        x, y, z = HOME
-        return self.move_to(x + TURN_DELTA_X, y, z, movetime_ms=POSE_MOVETIME_MS)
+        pulse = max(BASE_SERVO_MIN, min(BASE_SERVO_MAX, BASE_SERVO_CENTER - BASE_SERVO_DELTA))
+        self._set_bus_servo(BASE_SERVO_ID, pulse, movetime_ms=120)
+        return {"turn": "right", "servo": BASE_SERVO_ID, "pulse": pulse}
+
+    def center_turn(self):
+        self._set_bus_servo(BASE_SERVO_ID, BASE_SERVO_CENTER, movetime_ms=120)
+        return {"turn": "center", "servo": BASE_SERVO_ID, "pulse": BASE_SERVO_CENTER}
 
     def lift(self, height: float = 6.0):
         x, y, z = CARRY

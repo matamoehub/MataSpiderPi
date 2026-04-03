@@ -103,6 +103,9 @@ class Arm:
     def turn_right(self):
         return self._arm.turn_right()
 
+    def center_turn(self):
+        return self._arm.center_turn()
+
     def grab_at(self, x: float, y: float, z: float):
         return self._arm.grab_at(x, y, z)
 
