@@ -75,6 +75,28 @@ def _sleep_us(value: int):
     time.sleep(float(value) / 1_000_000.0)
 
 
+def _normalize_vertical_buf(buf):
+    rows = [str(item).strip() for item in buf]
+    if not rows:
+        return ["0" * 16] * 16
+    width = max(len(row) for row in rows)
+    if width <= 8:
+        # The TM1640 buffer is 16 columns wide on SpiderPi. Center smaller
+        # 8-column classroom icons so they do not render only on the left side.
+        width = 16
+    width = max(1, width)
+    normalized = []
+    for row in rows:
+        bits = "".join("1" if ch == "1" else "0" for ch in row)
+        if len(bits) > width:
+            bits = bits[:width]
+        pad_total = width - len(bits)
+        pad_left = pad_total // 2
+        pad_right = pad_total - pad_left
+        normalized.append(("0" * pad_left) + bits + ("0" * pad_right))
+    return normalized
+
+
 def _matrix_subprocess(action: str, payload) -> dict:
     script = """
 import json, os, sys
@@ -84,6 +106,7 @@ import sensor.dot_matrix_sensor as DMS
 tm = DMS.TM1640(dio=7, clk=8)
 action = os.environ["MATA_MATRIX_ACTION"]
 payload = json.loads(os.environ["MATA_MATRIX_PAYLOAD"])
+tm.clear()
 if action == "shape":
     tm.set_buf_vertical(payload)
 elif action == "number":
@@ -386,7 +409,7 @@ class Display:
         if key not in _SHAPES:
             raise ValueError(f"Unknown shape: {name}")
         try:
-            result = _matrix_subprocess("shape", _SHAPES[key])
+            result = _matrix_subprocess("shape", _normalize_vertical_buf(_SHAPES[key]))
             result["shape"] = key
             return result
         except Exception as exc:
