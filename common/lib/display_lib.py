@@ -145,6 +145,12 @@ print(json.dumps({"ok": True, "action": action}))
         return {"ok": True, "action": action, "stdout": proc.stdout.strip()}
 
 
+def _coerce_hold_seconds(seconds) -> float:
+    if seconds is None:
+        return 0.0
+    return max(0.0, float(seconds))
+
+
 class _MatrixDisplayCompat:
     digit_dict = {
         "0": 0x3F,
@@ -384,10 +390,15 @@ class Display:
         except Exception as exc:
             return {"line": int(line_number), "text": str(text)[:20], "console_echo": rendered, "display_error": str(exc)}
 
-    def number(self, value: int | float):
+    def number(self, value: int | float, seconds: float | None = None):
         try:
             result = _matrix_subprocess("number", value)
             result["number"] = value
+            hold_s = _coerce_hold_seconds(seconds)
+            if hold_s > 0:
+                time.sleep(hold_s)
+                _matrix_subprocess("clear", None)
+                result["hold_seconds"] = hold_s
             return result
         except Exception as exc:
             result = self._matrix_fallback_text("Number", str(value), "", "")
@@ -404,13 +415,18 @@ class Display:
             result["dot_matrix_error"] = str(exc)
             return result
 
-    def shape(self, name: str = "smile"):
+    def shape(self, name: str = "smile", seconds: float | None = None):
         key = str(name).strip().lower()
         if key not in _SHAPES:
             raise ValueError(f"Unknown shape: {name}")
         try:
             result = _matrix_subprocess("shape", _normalize_vertical_buf(_SHAPES[key]))
             result["shape"] = key
+            hold_s = _coerce_hold_seconds(seconds)
+            if hold_s > 0:
+                time.sleep(hold_s)
+                _matrix_subprocess("clear", None)
+                result["hold_seconds"] = hold_s
             return result
         except Exception as exc:
             result = self._matrix_fallback_text("Shape", key.title(), "", "")
@@ -418,17 +434,17 @@ class Display:
             result["dot_matrix_error"] = str(exc)
             return result
 
-    def smile(self):
-        return self.shape("smile")
+    def smile(self, seconds: float | None = None):
+        return self.shape("smile", seconds=seconds)
 
-    def triangle(self):
-        return self.shape("triangle")
+    def triangle(self, seconds: float | None = None):
+        return self.shape("triangle", seconds=seconds)
 
-    def square(self):
-        return self.shape("square")
+    def square(self, seconds: float | None = None):
+        return self.shape("square", seconds=seconds)
 
-    def diamond(self):
-        return self.shape("diamond")
+    def diamond(self, seconds: float | None = None):
+        return self.shape("diamond", seconds=seconds)
 
 
 def get_display() -> Display:
