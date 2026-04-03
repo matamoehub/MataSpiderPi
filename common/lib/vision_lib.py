@@ -546,6 +546,85 @@ class Vision:
             "game_moves": [hand["gesture"] for hand in hands_found if hand.get("gesture") in ("rock", "paper", "scissors")],
         }
 
+    def detect_faces(
+        self,
+        show: bool = True,
+        save_path: Optional[str] = None,
+        model_selection: int = 0,
+        min_detection_confidence: float = 0.5,
+    ) -> Dict[str, Any]:
+        cv2, _np = _require_runtime()
+        mp = _require_mediapipe_runtime()
+        frame_bgr, frame_rgb = self._capture_rgb_frame()
+        annotated = frame_bgr.copy()
+        h, w = annotated.shape[:2]
+        faces_found: List[Dict[str, Any]] = []
+
+        with mp.solutions.face_detection.FaceDetection(
+            model_selection=int(model_selection),
+            min_detection_confidence=float(min_detection_confidence),
+        ) as detector:
+            result = detector.process(frame_rgb)
+
+        detections = getattr(result, "detections", None) or []
+        for idx, detection in enumerate(detections, start=1):
+            bbox_rel = detection.location_data.relative_bounding_box
+            x = _clamp_pixel(bbox_rel.xmin * w, w - 1)
+            y = _clamp_pixel(bbox_rel.ymin * h, h - 1)
+            bw = max(1, _clamp_pixel(bbox_rel.width * w, w))
+            bh = max(1, _clamp_pixel(bbox_rel.height * h, h))
+            score = 0.0
+            try:
+                score = float(detection.score[0])
+            except Exception:
+                score = 0.0
+
+            face = {
+                "index": idx,
+                "score": score,
+                "bbox": {"x": x, "y": y, "w": bw, "h": bh},
+            }
+            faces_found.append(face)
+
+            cv2.rectangle(annotated, (x, y), (min(w - 1, x + bw), min(h - 1, y + bh)), (0, 255, 0), 2)
+            cv2.putText(
+                annotated,
+                f"Face {idx} {score:.2f}",
+                (x, max(18, y - 8)),
+                cv2.FONT_HERSHEY_SIMPLEX,
+                0.55,
+                (0, 255, 0),
+                2,
+            )
+
+        path = None
+        if show:
+            info = self.show_image(annotated, save_path=save_path, title=f"Detected faces: {len(faces_found)}")
+            path = info["path"]
+        elif save_path:
+            path = self._write_image(annotated, save_path=save_path)
+
+        return {
+            "found": bool(faces_found),
+            "count": len(faces_found),
+            "faces": faces_found,
+            "path": path,
+        }
+
+    def show_faces(
+        self,
+        show: bool = True,
+        save_path: Optional[str] = None,
+        model_selection: int = 0,
+        min_detection_confidence: float = 0.5,
+    ) -> Dict[str, Any]:
+        return self.detect_faces(
+            show=show,
+            save_path=save_path,
+            model_selection=model_selection,
+            min_detection_confidence=min_detection_confidence,
+        )
+
     def show_hands(
         self,
         show: bool = True,
@@ -616,6 +695,14 @@ def set_color_profile(*args, **kwargs):
 
 def get_color_profile(*args, **kwargs):
     return get_vision().get_color_profile(*args, **kwargs)
+
+
+def detect_faces(*args, **kwargs):
+    return get_vision().detect_faces(*args, **kwargs)
+
+
+def show_faces(*args, **kwargs):
+    return get_vision().show_faces(*args, **kwargs)
 
 
 def show_profiles():

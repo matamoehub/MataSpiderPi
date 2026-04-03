@@ -73,15 +73,19 @@ class SpiderVision:
         }
 
     def detect_faces(self, show: bool = True) -> dict[str, Any]:
+        base = _require_base()
+        raw = base.detect_faces(show=show)
         return {
             "ok": True,
-            "found": None,
-            "count": None,
             "activity": "face_detection",
             "engine": "mediapipe",
             "vendor_demo": "functions/face_detect.py",
             "show": bool(show),
-            "message": "MediaPipe face detection is available in the upstream SpiderPi demos.",
+            "found": bool(raw.get("found")),
+            "count": int(raw.get("count", 0)),
+            "faces": list(raw.get("faces") or []),
+            "path": raw.get("path"),
+            "message": "Face detection uses the MataSpiderPi MediaPipe helper and can display an annotated frame.",
         }
 
     def show_faces(self, show: bool = True) -> dict[str, Any]:
