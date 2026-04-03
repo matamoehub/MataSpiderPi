@@ -6,10 +6,15 @@ from spiderpi_support import get_arm_ik, get_board
 GRIPPER_OPEN = 120
 GRIPPER_MID = 360
 GRIPPER_CLOSED = 600
-HOME = (0, 15, 18)
-LOOK = (0, 15, 30)
-CARRY = (0, 18, 10)
-PLACE = (8, 18, 3)
+# Default SpiderPi arm poses tuned against the real robot:
+# - HOME should be a compact centered rest position
+# - LOOK should keep the camera centered and more upright
+# - CARRY/PLACE should remain lower utility poses for pick-and-place
+HOME = (0, 12, 22)
+LOOK = (0, 10, 34)
+CARRY = (0, 15, 14)
+PLACE = (8, 16, 5)
+POSE_MOVETIME_MS = 500
 
 
 class Arm:
@@ -51,16 +56,16 @@ class Arm:
         return self.move_to(x, y, z, movetime_ms=int(float(seconds) * 1000))
 
     def home(self):
-        return self.move_to(*HOME)
+        return self.move_to(*HOME, movetime_ms=POSE_MOVETIME_MS)
 
     def look_pose(self):
-        return self.move_to(*LOOK, pitch=0)
+        return self.move_to(*LOOK, pitch=0, movetime_ms=POSE_MOVETIME_MS)
 
     def carry_pose(self):
-        return self.move_to(*CARRY)
+        return self.move_to(*CARRY, movetime_ms=POSE_MOVETIME_MS)
 
     def place_pose(self):
-        return self.move_to(*PLACE)
+        return self.move_to(*PLACE, movetime_ms=POSE_MOVETIME_MS)
 
     def ready(self):
         return self.home()
