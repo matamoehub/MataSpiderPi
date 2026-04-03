@@ -31,8 +31,12 @@ def resolve_vendor_root() -> Path:
             candidates.append(Path(value).expanduser())
 
     repo_vendor = repo_root() / 'vendor' / 'hiwonder_spiderpi'
+    robot_repo_dir = str(os.environ.get("ROBOT_LIB_REPO_DIR", "")).strip()
+    if robot_repo_dir:
+        candidates.append(Path(robot_repo_dir).expanduser() / "vendor" / "hiwonder_spiderpi")
     candidates.extend(
         [
+            Path("/opt/robot/MataSpiderPi/vendor/hiwonder_spiderpi"),
             Path("/home/pi/spiderpi"),
             Path("/home/pi/SpiderPi"),
             Path("/home/pi/hiwonder_spiderpi"),

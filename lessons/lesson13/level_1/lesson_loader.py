@@ -79,6 +79,7 @@ def _resolve_common_lib(root: Path) -> Path:
             candidates.append(Path(value).expanduser())
     candidates.extend([
         root / "common" / "lib",
+        Path("/opt/robot/common/lib"),
         Path("/opt/robot/students/lessons_cache/common/lib"),
         Path("/opt/robot/students/lesson_cache/common/lib"),
     ])
