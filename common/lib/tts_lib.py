@@ -23,6 +23,7 @@ from typing import Optional
 
 # Allow override so it works no matter which user runs Jupyter/services
 VOICE_DIR = os.environ.get("PIPER_VOICE_DIR", os.path.expanduser("/opt/robot/piper/voices"))
+PIPER_BIN = os.environ.get("PIPER_BIN", "/opt/robot/piper/piper/piper")
 
 VOICE_MAP = {
     "ryan": ("en_US-ryan-high.onnx", "en_US-ryan-high.onnx.json"),
@@ -110,10 +111,15 @@ def synth_to_wav(
     Synthesize speech to a wav file using piper.
     """
     model, config = _voice_paths(voice)
+    if not os.path.isfile(PIPER_BIN):
+        raise FileNotFoundError(
+            f"Piper binary not found: {PIPER_BIN}\n"
+            "Tip: set PIPER_BIN to the full piper executable path."
+        )
 
     proc = subprocess.run(
         [
-            "piper",
+            PIPER_BIN,
             "-m",
             model,
             "-c",

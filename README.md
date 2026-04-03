@@ -21,7 +21,7 @@ python3.11 --version
 python3.11 -m venv .venv
 source .venv/bin/activate
 python -m pip install --upgrade pip
-python -m pip install jupyterlab notebook ipykernel numpy opencv-python mediapipe pillow
+python -m pip install -r requirements-robot.txt
 ```
 
 If `python3.11` is not installed yet, one common option on macOS is `pyenv`:
@@ -52,6 +52,25 @@ Notes:
 - Real robot control depends on the robot image, ROS setup, and Hiwonder hardware services being available.
 - Lesson 13 uses MediaPipe hand recognition, so `mediapipe` must be installed in the active environment.
 - The local simulator app also uses `tkinter`, which is usually included with Python installers but may need extra setup on some `pyenv` builds.
+- The robot vision stack should stay on `numpy<2` for now. If OpenCV starts failing with `_ARRAY_API not found` or `numpy.core.multiarray failed to import`, reinstall the compatible stack with `python -m pip install --force-reinstall --no-cache-dir 'numpy<2' 'opencv-python<4.11' mediapipe matplotlib pillow`.
+- Sonar and I2C-backed sensor features need `smbus2` in the active environment.
+
+## Robot Runtime Notes
+
+On the robot, Jupyter is usually running inside `/opt/robot/ops_web/.venv`, so install lesson dependencies there:
+
+```bash
+source /opt/robot/ops_web/.venv/bin/activate
+python -m pip install --upgrade pip
+python -m pip install -r /path/to/MataSpiderPi/requirements-robot.txt
+```
+
+If the robot already has a broken NumPy 2 / OpenCV combination, force a repair:
+
+```bash
+source /opt/robot/ops_web/.venv/bin/activate
+python -m pip install --force-reinstall --no-cache-dir 'numpy<2' 'opencv-python<4.11' mediapipe matplotlib pillow smbus2
+```
 
 ## SpiderPi Content Areas
 

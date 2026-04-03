@@ -22,6 +22,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Sequence, Tuple
 
 from ros_service_client import clear_process_singleton, get_process_singleton, set_process_singleton
+from spiderpi_support import ensure_vendor_paths
 
 
 HSVRange = Tuple[Tuple[int, int, int], Tuple[int, int, int]]
@@ -40,6 +41,8 @@ DEFAULT_COLOR_PROFILES: Dict[str, List[HSVRange]] = {
     ],
 }
 
+ensure_vendor_paths()
+
 
 def _normalize_color_name(color: str) -> str:
     value = str(color or "").strip().lower()
@@ -56,9 +59,22 @@ def _require_runtime():
         import cv2  # type: ignore
         import numpy as np  # type: ignore
     except Exception as e:  # pragma: no cover - depends on robot runtime
+        msg = str(e)
+        hint = ""
+        if (
+            "numpy.core.multiarray failed to import" in msg
+            or "_ARRAY_API not found" in msg
+            or "compiled using NumPy 1.x" in msg
+        ):
+            hint = (
+                " This usually means OpenCV was installed against NumPy 1.x but the "
+                "environment now has NumPy 2.x. In the robot/Jupyter environment, run: "
+                "python -m pip install --force-reinstall --no-cache-dir "
+                "'numpy<2' 'opencv-python<4.11'."
+            )
         raise RuntimeError(
             "vision_lib requires OpenCV and NumPy on the robot image. "
-            f"Import failed: {e}"
+            f"Import failed: {e}.{hint}"
         ) from e
     return cv2, np
 
@@ -201,17 +217,43 @@ class Vision:
 
     def _open_capture(self):
         cv2, _np = _require_runtime()
-        cap = cv2.VideoCapture(self.camera_index)
-        if not cap.isOpened():
-            raise RuntimeError(
-                f"Camera failed to open on index {self.camera_index}. "
-                "Try setting CAM_INDEX=1 on this robot."
-            )
-        cap.set(cv2.CAP_PROP_FRAME_WIDTH, self.width)
-        cap.set(cv2.CAP_PROP_FRAME_HEIGHT, self.height)
-        if self.warmup_s > 0:
-            time.sleep(self.warmup_s)
-        return cap
+        candidates: list[int] = []
+        for value in (self.camera_index, -1, 0, 1):
+            if value not in candidates:
+                candidates.append(value)
+
+        last_error = None
+        for index in candidates:
+            cap = None
+            try:
+                cap = cv2.VideoCapture(index, cv2.CAP_V4L2)
+            except Exception:
+                cap = cv2.VideoCapture(index)
+            if not cap or not cap.isOpened():
+                if cap is not None:
+                    cap.release()
+                last_error = f"index {index} did not open"
+                continue
+
+            try:
+                cap.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc("Y", "U", "Y", "V"))
+            except Exception:
+                pass
+            cap.set(cv2.CAP_PROP_FRAME_WIDTH, self.width)
+            cap.set(cv2.CAP_PROP_FRAME_HEIGHT, self.height)
+            try:
+                cap.set(cv2.CAP_PROP_FPS, 30)
+                cap.set(cv2.CAP_PROP_SATURATION, 40)
+            except Exception:
+                pass
+            if self.warmup_s > 0:
+                time.sleep(self.warmup_s)
+            return cap
+
+        raise RuntimeError(
+            f"Camera failed to open on indices {candidates}. "
+            f"Last result: {last_error}. Try setting CAM_INDEX for this robot."
+        )
 
     def capture_frame(self):
         cap = self._open_capture()

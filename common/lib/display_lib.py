@@ -72,6 +72,12 @@ class Display:
             raise RuntimeError("SpiderPi OLED display is unavailable")
         return self._board
 
+    def _oled_write(self, line: int, text: str):
+        board = self._require_board()
+        # Vendor SDK comments indicate the OLED payload length should include
+        # the string terminator, so send one explicitly.
+        board.set_oled_text(int(line), str(text)[:20] + "\0")
+
     def _matrix_display(self):
         if self._matrix is None:
             if dot_matrix_sensor is None:
@@ -84,7 +90,7 @@ class Display:
         board = self._require_board()
         padded = list(lines[:4]) + [""] * max(0, 4 - len(lines))
         for index, text in enumerate(padded[:4], start=1):
-            board.set_oled_text(index, str(text)[:20])
+            self._oled_write(index, str(text)[:20])
         self._last_matrix_fallback = [str(item)[:20] for item in padded[:4]]
         return {
             "fallback": "oled_text",
@@ -93,17 +99,28 @@ class Display:
             "dot_matrix_error": str(_DOT_MATRIX_IMPORT_ERROR) if _DOT_MATRIX_IMPORT_ERROR else None,
         }
 
+    def _console_echo(self, *lines: str):
+        rendered = [str(item)[:20] for item in list(lines[:4]) + [""] * max(0, 4 - len(lines))]
+        print("[display]", " | ".join(x for x in rendered if x))
+        return rendered
+
     def text(self, line1: str = "", line2: str = "", line3: str = "", line4: str = ""):
-        board = self._require_board()
         lines = [line1, line2, line3, line4]
-        for index, text in enumerate(lines, start=1):
-            board.set_oled_text(index, str(text)[:20])
-        return {"lines": lines}
+        echoed = self._console_echo(*lines)
+        try:
+            for index, text in enumerate(lines, start=1):
+                self._oled_write(index, str(text)[:20])
+            return {"lines": lines, "console_echo": echoed}
+        except Exception as exc:
+            return {"lines": lines, "console_echo": echoed, "display_error": str(exc)}
 
     def line(self, line_number: int, text: str):
-        board = self._require_board()
-        board.set_oled_text(int(line_number), str(text)[:20])
-        return {"line": int(line_number), "text": str(text)[:20]}
+        rendered = self._console_echo(f"Line {int(line_number)}", str(text)[:20])
+        try:
+            self._oled_write(int(line_number), str(text)[:20])
+            return {"line": int(line_number), "text": str(text)[:20], "console_echo": rendered}
+        except Exception as exc:
+            return {"line": int(line_number), "text": str(text)[:20], "console_echo": rendered, "display_error": str(exc)}
 
     def number(self, value: int | float):
         if dot_matrix_sensor is None:

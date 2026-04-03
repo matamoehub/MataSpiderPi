@@ -1,0 +1,10 @@
+jupyterlab
+notebook
+ipykernel
+numpy<2
+opencv-python<4.11
+mediapipe
+pillow
+matplotlib
+smbus2
+gpiod

@@ -23,7 +23,15 @@ else:
 class Sonar:
     def __init__(self, window: int = 5):
         if Ultrasonic is None:
-            raise RuntimeError(f"SpiderPi ultrasonic sensor is unavailable: {_ULTRASONIC_IMPORT_ERROR}")
+            hint = ""
+            if "smbus2" in str(_ULTRASONIC_IMPORT_ERROR):
+                hint = (
+                    " Install the I2C dependency in the robot/Jupyter environment with: "
+                    "python -m pip install smbus2"
+                )
+            raise RuntimeError(
+                f"SpiderPi ultrasonic sensor is unavailable: {_ULTRASONIC_IMPORT_ERROR}.{hint}"
+            )
         self.window = max(1, int(window))
         self._sensor = Ultrasonic()
         self._samples: Deque[int] = deque(maxlen=self.window)

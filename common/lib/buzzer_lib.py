@@ -59,7 +59,7 @@ class Buzzer:
             raise RuntimeError("SpiderPi buzzer control unavailable")
         return self._board
 
-    def beep(self, freq: int = DEFAULT_FREQ, duration_s: float = 0.2, gap_s: float = 0.02, note: str | None = None) -> None:
+    def beep(self, freq: int = DEFAULT_FREQ, duration_s: float = 0.2, gap_s: float = 0.05, note: str | None = None) -> None:
         board = self._require_board()
         if note is not None:
             freq = note_to_freq(note)
@@ -69,8 +69,14 @@ class Buzzer:
         if int(freq) <= 0:
             time.sleep(duration_s)
             return
-        board.set_buzzer(int(freq), duration_s, 0.0, 1)
-        time.sleep(duration_s + float(gap_s))
+        gap_s = max(0.0, float(gap_s))
+        try:
+            # The SpiderPi controller expects an explicit off window; using 0 here
+            # can leave the buzzer latched on some robot images.
+            board.set_buzzer(int(freq), duration_s, gap_s, 1)
+            time.sleep(duration_s + gap_s)
+        finally:
+            self.off()
 
     def off(self) -> None:
         try:
@@ -89,13 +95,16 @@ class Buzzer:
 
     def play_notes(self, score: str, bpm: int = DEFAULT_BPM) -> None:
         tokens = [t for t in str(score).split() if t.strip()]
-        for token in tokens:
-            if ":" in token:
-                note, beats_txt = token.split(":", 1)
-                beats = float(beats_txt)
-            else:
-                note, beats = token, 1.0
-            self.play_note(note, beats=beats, bpm=bpm)
+        try:
+            for token in tokens:
+                if ":" in token:
+                    note, beats_txt = token.split(":", 1)
+                    beats = float(beats_txt)
+                else:
+                    note, beats = token, 1.0
+                self.play_note(note, beats=beats, bpm=bpm)
+        finally:
+            self.off()
 
     def play_notes_music_mode(self, score: str, bpm: int = DEFAULT_BPM) -> None:
         self.play_notes(score, bpm=bpm)
