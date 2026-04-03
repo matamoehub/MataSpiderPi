@@ -107,7 +107,7 @@ class Camera:
 
     def wiggle(self, cycles: int = 2, amplitude: int = 200, speed_s: Optional[float] = None):
         seconds = HEAD_MOTION_SECONDS if speed_s is None else float(speed_s)
-        delta = max(90, min(220, int(float(amplitude) * 1.5)))
+        delta = max(180, min(280, int(float(amplitude) * 3.0)))
         for _ in range(max(1, int(cycles))):
             self._set_turn(HEAD_TURN_CENTER + delta, seconds=seconds)
             self._set_turn(HEAD_TURN_CENTER - delta, seconds=seconds)
