@@ -452,6 +452,7 @@ class Display:
 
     def number(self, value: int | float, seconds: float | None = None):
         try:
+            print(f"[display] matrix number -> value={value!r} seconds={seconds!r} via system-python")
             result = _matrix_subprocess("number", value)
             result["number"] = value
             hold_s = _coerce_hold_seconds(seconds)
@@ -461,6 +462,7 @@ class Display:
                 result["hold_seconds"] = hold_s
             return result
         except Exception as exc:
+            print(f"[display] matrix number fallback -> value={value!r} error={exc}")
             result = self._matrix_fallback_text("Number", str(value), "", "")
             result["number"] = value
             result["dot_matrix_error"] = str(exc)
@@ -468,8 +470,10 @@ class Display:
 
     def clear_matrix(self):
         try:
+            print("[display] matrix clear via system-python")
             return _matrix_subprocess("clear", None)
         except Exception as exc:
+            print(f"[display] matrix clear fallback -> error={exc}")
             result = self._matrix_fallback_text("", "", "", "")
             result["matrix"] = "cleared_via_oled"
             result["dot_matrix_error"] = str(exc)
@@ -480,6 +484,7 @@ class Display:
         if key not in _SHAPES:
             raise ValueError(f"Unknown shape: {name}")
         try:
+            print(f"[display] matrix shape -> name={key!r} seconds={seconds!r} via system-python")
             result = _matrix_subprocess("shape", _normalize_vertical_buf(_SHAPES[key]))
             result["shape"] = key
             hold_s = _coerce_hold_seconds(seconds)
@@ -489,6 +494,7 @@ class Display:
                 result["hold_seconds"] = hold_s
             return result
         except Exception as exc:
+            print(f"[display] matrix shape fallback -> name={key!r} error={exc}")
             result = self._matrix_fallback_text("Shape", key.title(), "", "")
             result["shape"] = key
             result["dot_matrix_error"] = str(exc)
