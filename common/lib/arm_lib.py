@@ -105,16 +105,16 @@ class Arm:
 
     def turn_left(self):
         pulse = max(BASE_SERVO_MIN, min(BASE_SERVO_MAX, BASE_SERVO_CENTER + BASE_SERVO_DELTA))
-        self._set_bus_servo(BASE_SERVO_ID, pulse, movetime_ms=120)
+        self._set_bus_servo(BASE_SERVO_ID, pulse, movetime_ms=240)
         return {"turn": "left", "servo": BASE_SERVO_ID, "pulse": pulse}
 
     def turn_right(self):
         pulse = max(BASE_SERVO_MIN, min(BASE_SERVO_MAX, BASE_SERVO_CENTER - BASE_SERVO_DELTA))
-        self._set_bus_servo(BASE_SERVO_ID, pulse, movetime_ms=120)
+        self._set_bus_servo(BASE_SERVO_ID, pulse, movetime_ms=240)
         return {"turn": "right", "servo": BASE_SERVO_ID, "pulse": pulse}
 
     def center_turn(self):
-        self._set_bus_servo(BASE_SERVO_ID, BASE_SERVO_CENTER, movetime_ms=120)
+        self._set_bus_servo(BASE_SERVO_ID, BASE_SERVO_CENTER, movetime_ms=240)
         return {"turn": "center", "servo": BASE_SERVO_ID, "pulse": BASE_SERVO_CENTER}
 
     def lift(self, height: float = 6.0):
