@@ -14,7 +14,7 @@ HOME = (0, 12, 22)
 LOOK = (0, 10, 34)
 CARRY = (0, 15, 14)
 PLACE = (8, 16, 5)
-POSE_MOVETIME_MS = 31
+POSE_MOVETIME_MS = 15
 
 
 class Arm:
