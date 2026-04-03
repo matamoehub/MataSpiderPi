@@ -2,6 +2,9 @@
 from __future__ import annotations
 
 from pathlib import Path
+import json
+import os
+import subprocess
 import time
 
 from spiderpi_support import ensure_vendor_paths, get_board
@@ -64,10 +67,59 @@ _TM1640_CMD2 = 192
 _TM1640_CMD3 = 128
 _TM1640_DSP_ON = 8
 _TM1640_DELAY_US = 10
+_SYSTEM_PYTHON = os.environ.get("MATA_SYSTEM_PYTHON", "/usr/bin/python3")
+_VENDOR_SENSOR_SDK = os.environ.get("MATA_SPIDERPI_SENSOR_SDK", "/home/pi/spiderpi/spiderpi_sdk/sensor_sdk")
 
 
 def _sleep_us(value: int):
     time.sleep(float(value) / 1_000_000.0)
+
+
+def _matrix_subprocess(action: str, payload) -> dict:
+    script = """
+import json, os, sys
+sys.path.insert(0, os.environ["MATA_SPIDERPI_SENSOR_SDK"])
+import sensor.dot_matrix_sensor as DMS
+
+tm = DMS.TM1640(dio=7, clk=8)
+action = os.environ["MATA_MATRIX_ACTION"]
+payload = json.loads(os.environ["MATA_MATRIX_PAYLOAD"])
+if action == "shape":
+    tm.set_buf_vertical(payload)
+elif action == "number":
+    tm.set_number(payload)
+elif action == "clear":
+    tm.clear()
+else:
+    raise RuntimeError(f"Unknown matrix action: {action}")
+if action != "clear":
+    tm.update_display()
+print(json.dumps({"ok": True, "action": action}))
+"""
+    proc = subprocess.run(
+        [_SYSTEM_PYTHON, "-c", script],
+        env={
+            **os.environ,
+            "PYTHONUNBUFFERED": "1",
+            "MATA_SPIDERPI_SENSOR_SDK": _VENDOR_SENSOR_SDK,
+            "MATA_MATRIX_ACTION": str(action),
+            "MATA_MATRIX_PAYLOAD": json.dumps(payload),
+        },
+        input="",
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        cwd="/tmp",
+    )
+    if proc.returncode != 0:
+        raise RuntimeError(proc.stderr.strip() or proc.stdout.strip() or "matrix subprocess failed")
+    out = (proc.stdout or "").strip().splitlines()
+    if not out:
+        return {"ok": True, "action": action}
+    try:
+        return json.loads(out[-1])
+    except Exception:
+        return {"ok": True, "action": action, "stdout": proc.stdout.strip()}
 
 
 class _MatrixDisplayCompat:
@@ -310,15 +362,10 @@ class Display:
             return {"line": int(line_number), "text": str(text)[:20], "console_echo": rendered, "display_error": str(exc)}
 
     def number(self, value: int | float):
-        if dot_matrix_sensor is None:
-            result = self._matrix_fallback_text("Number", str(value), "", "")
+        try:
+            result = _matrix_subprocess("number", value)
             result["number"] = value
             return result
-        try:
-            display = self._matrix_display()
-            display.set_number(value)
-            display.update_display()
-            return {"number": value}
         except Exception as exc:
             result = self._matrix_fallback_text("Number", str(value), "", "")
             result["number"] = value
@@ -326,14 +373,8 @@ class Display:
             return result
 
     def clear_matrix(self):
-        if dot_matrix_sensor is None:
-            result = self._matrix_fallback_text("", "", "", "")
-            result["matrix"] = "cleared_via_oled"
-            return result
         try:
-            display = self._matrix_display()
-            display.clear()
-            return {"matrix": "cleared"}
+            return _matrix_subprocess("clear", None)
         except Exception as exc:
             result = self._matrix_fallback_text("", "", "", "")
             result["matrix"] = "cleared_via_oled"
@@ -344,15 +385,10 @@ class Display:
         key = str(name).strip().lower()
         if key not in _SHAPES:
             raise ValueError(f"Unknown shape: {name}")
-        if dot_matrix_sensor is None:
-            result = self._matrix_fallback_text("Shape", key.title(), "", "")
+        try:
+            result = _matrix_subprocess("shape", _SHAPES[key])
             result["shape"] = key
             return result
-        try:
-            display = self._matrix_display()
-            display.set_buf_vertical(_SHAPES[key])
-            display.update_display()
-            return {"shape": key}
         except Exception as exc:
             result = self._matrix_fallback_text("Shape", key.title(), "", "")
             result["shape"] = key
