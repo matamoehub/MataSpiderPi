@@ -266,7 +266,7 @@ def _coerce_hold_seconds(seconds) -> float:
 
 def _matrix_text_rows(text: str) -> list[str]:
     value = str(text or "").upper()
-    chars = [ch for ch in value if ch in _FONT_3X5][:4]
+    chars = [ch for ch in value if ch in _FONT_3X5]
     if not chars:
         chars = [" "]
     rows5 = [""] * 5
@@ -281,7 +281,57 @@ def _matrix_text_rows(text: str) -> list[str]:
     for row in rows5:
         rows8.append(row[:width].ljust(width, "0"))
     rows8.extend(["0" * width, "0" * width])
-    return [r[:16].ljust(16, "0") for r in rows8[:8]]
+    visible = [r[:16].ljust(16, "0") for r in rows8[:8]]
+    # The SpiderPi matrix is vertically flipped relative to the simple 3x5 font.
+    visible.reverse()
+    return visible
+
+
+def _matrix_text_frames(text: str) -> list[list[str]]:
+    value = str(text or "").upper()
+    chars = [ch for ch in value if ch in _FONT_3X5]
+    if not chars:
+        chars = [" "]
+    rows5 = [""] * 5
+    for idx, ch in enumerate(chars):
+        glyph = _FONT_3X5.get(ch, _FONT_3X5[" "])
+        for y in range(5):
+            rows5[y] += glyph[y]
+            rows5[y] += "0"
+    padded = ["0" * 16 + row + "0" * 16 for row in rows5]
+    frames = []
+    total_width = max(len(row) for row in padded)
+    for start in range(0, max(1, total_width - 16 + 1)):
+        frame5 = [row[start:start + 16].ljust(16, "0") for row in padded]
+        frame8 = ["0" * 16] + frame5 + ["0" * 16, "0" * 16]
+        frame8.reverse()
+        frames.append(frame8[:8])
+    return frames
+
+
+def _show_matrix_text(text: str, seconds: float | None = None) -> dict:
+    hold_s = _coerce_hold_seconds(seconds)
+    value = str(text or "").strip()
+    if not value:
+        return _matrix_subprocess("clear", None)
+    chars = [ch for ch in value.upper() if ch in _FONT_3X5]
+    if len(chars) <= 4:
+        result = _matrix_subprocess("shape", _normalize_vertical_buf(_matrix_text_rows(value)))
+        if hold_s > 0:
+            time.sleep(hold_s)
+            _matrix_subprocess("clear", None)
+            result["hold_seconds"] = hold_s
+        return result
+
+    frames = _matrix_text_frames(value)
+    frame_delay = 0.18
+    if hold_s > 0 and frames:
+        frame_delay = max(0.08, hold_s / len(frames))
+    for frame in frames:
+        _matrix_subprocess("shape", _normalize_vertical_buf(frame))
+        time.sleep(frame_delay)
+    _matrix_subprocess("clear", None)
+    return {"ok": True, "action": "text_scroll", "frames": len(frames), "frame_delay": frame_delay}
 
 
 def _first_visible_text(lines) -> str:
@@ -521,12 +571,7 @@ class Display:
         if visible:
             try:
                 print(f"[display] matrix text -> text={visible!r} seconds={seconds!r} via system-python")
-                matrix_result = _matrix_subprocess("shape", _normalize_vertical_buf(_matrix_text_rows(visible)))
-                hold_s = _coerce_hold_seconds(seconds)
-                if hold_s > 0:
-                    time.sleep(hold_s)
-                    _matrix_subprocess("clear", None)
-                    matrix_result["hold_seconds"] = hold_s
+                matrix_result = _show_matrix_text(visible, seconds=seconds)
             except Exception as exc:
                 print(f"[display] matrix text fallback -> text={visible!r} error={exc}")
                 matrix_result = {"matrix_text_error": str(exc), "visible_text": visible}
@@ -550,12 +595,7 @@ class Display:
         if value.strip():
             try:
                 print(f"[display] matrix line -> line={int(line_number)} text={value!r} seconds={seconds!r} via system-python")
-                matrix_result = _matrix_subprocess("shape", _normalize_vertical_buf(_matrix_text_rows(value)))
-                hold_s = _coerce_hold_seconds(seconds)
-                if hold_s > 0:
-                    time.sleep(hold_s)
-                    _matrix_subprocess("clear", None)
-                    matrix_result["hold_seconds"] = hold_s
+                matrix_result = _show_matrix_text(value, seconds=seconds)
             except Exception as exc:
                 print(f"[display] matrix line fallback -> line={int(line_number)} text={value!r} error={exc}")
                 matrix_result = {"matrix_text_error": str(exc), "visible_text": value}
