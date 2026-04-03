@@ -35,22 +35,22 @@ class Body:
     def __init__(self):
         self._actions = get_actions()
 
-    def forward(self, seconds: float = 0.6):
+    def forward(self, seconds: float = 1.2):
         return robot_moves_module.forward(seconds=seconds)
 
-    def backward(self, seconds: float = 0.6):
+    def backward(self, seconds: float = 1.2):
         return robot_moves_module.backward(seconds=seconds)
 
-    def left(self, seconds: float = 0.6):
+    def left(self, seconds: float = 1.2):
         return robot_moves_module.left(seconds=seconds)
 
-    def right(self, seconds: float = 0.6):
+    def right(self, seconds: float = 1.2):
         return robot_moves_module.right(seconds=seconds)
 
-    def turn_left(self, seconds: float = 0.5):
+    def turn_left(self, seconds: float = 1.0):
         return robot_moves_module.turn_left(seconds=seconds)
 
-    def turn_right(self, seconds: float = 0.5):
+    def turn_right(self, seconds: float = 1.0):
         return robot_moves_module.turn_right(seconds=seconds)
 
     def stop(self):
