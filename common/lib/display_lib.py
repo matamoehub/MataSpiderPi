@@ -7,8 +7,10 @@ ensure_vendor_paths()
 
 try:
     import sensor.dot_matrix_sensor as dot_matrix_sensor
-except Exception:  # pragma: no cover
+    _DOT_MATRIX_IMPORT_ERROR = None
+except Exception as exc:  # pragma: no cover
     dot_matrix_sensor = None  # type: ignore[assignment]
+    _DOT_MATRIX_IMPORT_ERROR = exc
 
 
 _SHAPES = {
@@ -63,6 +65,7 @@ class Display:
     def __init__(self):
         self._board = get_board()
         self._matrix = None
+        self._last_matrix_fallback = None
 
     def _require_board(self):
         if self._board is None:
@@ -72,9 +75,23 @@ class Display:
     def _matrix_display(self):
         if self._matrix is None:
             if dot_matrix_sensor is None:
-                raise RuntimeError("SpiderPi dot matrix display is unavailable")
+                detail = f": {_DOT_MATRIX_IMPORT_ERROR}" if _DOT_MATRIX_IMPORT_ERROR else ""
+                raise RuntimeError(f"SpiderPi dot matrix display is unavailable{detail}")
             self._matrix = dot_matrix_sensor.TM1640(dio=7, clk=8)
         return self._matrix
+
+    def _matrix_fallback_text(self, *lines: str):
+        board = self._require_board()
+        padded = list(lines[:4]) + [""] * max(0, 4 - len(lines))
+        for index, text in enumerate(padded[:4], start=1):
+            board.set_oled_text(index, str(text)[:20])
+        self._last_matrix_fallback = [str(item)[:20] for item in padded[:4]]
+        return {
+            "fallback": "oled_text",
+            "lines": self._last_matrix_fallback,
+            "dot_matrix_available": False,
+            "dot_matrix_error": str(_DOT_MATRIX_IMPORT_ERROR) if _DOT_MATRIX_IMPORT_ERROR else None,
+        }
 
     def text(self, line1: str = "", line2: str = "", line3: str = "", line4: str = ""):
         board = self._require_board()
@@ -89,12 +106,20 @@ class Display:
         return {"line": int(line_number), "text": str(text)[:20]}
 
     def number(self, value: int | float):
+        if dot_matrix_sensor is None:
+            result = self._matrix_fallback_text("Number", str(value), "", "")
+            result["number"] = value
+            return result
         display = self._matrix_display()
         display.set_number(value)
         display.update_display()
         return {"number": value}
 
     def clear_matrix(self):
+        if dot_matrix_sensor is None:
+            result = self._matrix_fallback_text("", "", "", "")
+            result["matrix"] = "cleared_via_oled"
+            return result
         display = self._matrix_display()
         display.clear()
         return {"matrix": "cleared"}
@@ -103,6 +128,10 @@ class Display:
         key = str(name).strip().lower()
         if key not in _SHAPES:
             raise ValueError(f"Unknown shape: {name}")
+        if dot_matrix_sensor is None:
+            result = self._matrix_fallback_text("Shape", key.title(), "", "")
+            result["shape"] = key
+            return result
         display = self._matrix_display()
         display.set_buf_vertical(_SHAPES[key])
         display.update_display()
