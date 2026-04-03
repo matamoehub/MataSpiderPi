@@ -53,7 +53,9 @@ class Arm:
         return ik.setPitchRangeMoving((float(x), float(y), float(z)), float(pitch), float(min_pitch), float(max_pitch), int(movetime_ms))
 
     def move(self, x: float, y: float, z: float, seconds: float = 1.0):
-        return self.move_to(x, y, z, movetime_ms=int(float(seconds) * 1000))
+        # SpiderPi feels more natural with a shorter default move window than
+        # the classroom API's nominal seconds value.
+        return self.move_to(x, y, z, movetime_ms=max(1, int(float(seconds) * 500)))
 
     def home(self):
         return self.move_to(*HOME, movetime_ms=POSE_MOVETIME_MS)
