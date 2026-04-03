@@ -8,6 +8,8 @@ from spiderpi_support import get_board
 
 DEFAULT_BPM = 120
 DEFAULT_FREQ = 2400
+POST_NOTE_GAP_S = 0.05
+BUZZER_SUSTAIN_CHUNK_S = 0.08
 
 _SEMITONES = {
     "C": 0,
@@ -59,26 +61,38 @@ class Buzzer:
             raise RuntimeError("SpiderPi buzzer control unavailable")
         return self._board
 
-    def beep(self, freq: int = DEFAULT_FREQ, duration_s: float = 0.2, gap_s: float = 0.05, note: str | None = None) -> None:
+    def beep(self, freq: int = DEFAULT_FREQ, duration_s: float = 0.2, gap_s: float = POST_NOTE_GAP_S, note: str | None = None) -> None:
         board = self._require_board()
         if note is not None:
             freq = note_to_freq(note)
         duration_s = max(0.0, float(duration_s))
         if duration_s <= 0.0:
             return
+        gap_s = max(0.0, float(gap_s))
         if int(freq) <= 0:
             time.sleep(duration_s)
+            if gap_s > 0:
+                time.sleep(gap_s)
             return
-        gap_s = max(0.0, float(gap_s))
+        remain_s = duration_s
+        chunk_s = max(0.02, float(BUZZER_SUSTAIN_CHUNK_S))
         try:
-            # The SpiderPi controller expects an explicit off window; using 0 here
-            # can leave the buzzer latched on some robot images.
-            board.set_buzzer(int(freq), duration_s, gap_s, 1)
-            time.sleep(duration_s + gap_s)
+            while remain_s > 0:
+                on_s = min(chunk_s, remain_s)
+                board.set_buzzer(int(freq), on_s, 0.0, 1)
+                time.sleep(on_s)
+                remain_s -= on_s
         finally:
             self.off()
+        if gap_s > 0:
+            time.sleep(gap_s)
 
     def off(self) -> None:
+        try:
+            # Some controller images ignore a pure zero-duration stop command.
+            self._require_board().set_buzzer(0, 0.02, 0.0, 1)
+        except Exception:
+            pass
         try:
             self._require_board().set_buzzer(0, 0.0, 0.0, 1)
         except Exception:
@@ -91,7 +105,9 @@ class Buzzer:
         if freq <= 0:
             time.sleep(total_s)
             return
-        self.beep(freq=freq, duration_s=total_s)
+        gap_s = min(float(POST_NOTE_GAP_S), total_s * 0.25)
+        on_s = max(0.0, total_s - gap_s)
+        self.beep(freq=freq, duration_s=on_s, gap_s=gap_s)
 
     def play_notes(self, score: str, bpm: int = DEFAULT_BPM) -> None:
         tokens = [t for t in str(score).split() if t.strip()]
