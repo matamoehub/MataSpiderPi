@@ -17,9 +17,44 @@ def repo_root() -> Path:
     return here.parents[2]
 
 
+@lru_cache(maxsize=1)
+def resolve_vendor_root() -> Path:
+    candidates: list[Path] = []
+
+    for env_name in (
+        "MATA_SPIDERPI_VENDOR_DIR",
+        "SPIDERPI_VENDOR_DIR",
+        "HIWONDER_SPIDERPI_DIR",
+    ):
+        value = str(os.environ.get(env_name, "")).strip()
+        if value:
+            candidates.append(Path(value).expanduser())
+
+    repo_vendor = repo_root() / 'vendor' / 'hiwonder_spiderpi'
+    candidates.extend(
+        [
+            Path("/home/pi/spiderpi"),
+            Path("/home/pi/SpiderPi"),
+            Path("/home/pi/hiwonder_spiderpi"),
+            Path("/home/pi/SpiderPi/vendor/hiwonder_spiderpi"),
+            repo_vendor,
+        ]
+    )
+
+    seen: set[str] = set()
+    for candidate in candidates:
+        key = str(candidate.resolve(strict=False))
+        if key in seen:
+            continue
+        seen.add(key)
+        if (candidate / "spiderpi_sdk").is_dir():
+            return candidate
+
+    return repo_vendor
+
+
 def ensure_vendor_paths() -> Path:
-    root = repo_root()
-    vendor = root / 'vendor' / 'hiwonder_spiderpi'
+    vendor = resolve_vendor_root()
     paths = [
         vendor,
         vendor / 'spiderpi_sdk' / 'common_sdk',
@@ -60,7 +95,7 @@ def get_action_controller() -> Any:
         return None
     try:
         from common.action_group_controller import ActionGroupController
-        return ActionGroupController(board, action_path=str(repo_root() / 'vendor' / 'hiwonder_spiderpi'))
+        return ActionGroupController(board, action_path=str(resolve_vendor_root()))
     except Exception:
         return None
 

@@ -4,113 +4,115 @@ from __future__ import annotations
 import time
 from typing import Optional
 
-from spiderpi_support import get_board
+from arm_lib import LOOK, get_arm
 
 
 class Camera:
     """
-    SpiderPi camera pan/tilt helper using the vendor board SDK.
+    SpiderPi "head" helper driven by the arm.
 
-    PWM servo ids:
-    - 1: pitch
-    - 2: yaw
+    The camera is fixed to the top of the arm, so camera movement-style methods
+    are translated into expressive arm poses.
     """
 
-    def __init__(
-        self,
-        pitch_id: int = 1,
-        yaw_id: int = 2,
-        center: int = 1500,
-        speed_s: float = 0.20,
-        min_pos: int = 1000,
-        max_pos: int = 2000,
-    ):
-        self._board = get_board()
-        self.pitch_id = int(pitch_id)
-        self.yaw_id = int(yaw_id)
-        self.center = int(center)
-        self.speed_s = float(speed_s)
-        self.min_pos = int(min_pos)
-        self.max_pos = int(max_pos)
+    def __init__(self):
+        self._arm = get_arm()
 
-    def _require_board(self):
-        if self._board is None:
-            raise RuntimeError("SpiderPi board camera control unavailable")
-        return self._board
+    def _require_arm(self):
+        if self._arm is None:
+            raise RuntimeError("SpiderPi arm camera control unavailable")
+        return self._arm
 
-    def _clamp(self, pos: int) -> int:
-        return max(self.min_pos, min(self.max_pos, int(pos)))
+    def _move_head(self, x: float, y: float, z: float, seconds: float = 0.25):
+        arm = self._require_arm()
+        return arm.move(x, y, z, seconds=seconds)
 
-    def _send(self, sid: int, pos: int, speed_s: Optional[float] = None):
-        board = self._require_board()
-        duration = float(self.speed_s if speed_s is None else speed_s)
-        board.pwm_servo_set_position(duration, [[int(sid), self._clamp(pos)]])
-        time.sleep(duration + 0.02)
+    def _yaw_delta(self, pos: int, center: int = 1500, max_delta: float = 6.0) -> float:
+        ratio = max(-1.0, min(1.0, (float(pos) - float(center)) / 500.0))
+        return ratio * max_delta
+
+    def _pitch_delta(self, pos: int, center: int = 1500, max_delta: float = 8.0) -> float:
+        ratio = max(-1.0, min(1.0, (float(pos) - float(center)) / 500.0))
+        return ratio * max_delta
 
     def center_all(self, speed_s: Optional[float] = None):
-        self._send(self.pitch_id, self.center, speed_s)
-        self._send(self.yaw_id, self.center, speed_s)
+        seconds = 0.25 if speed_s is None else float(speed_s)
+        return self._require_arm().look_pose() if seconds <= 0 else self._move_head(*LOOK, seconds=seconds)
 
     def set_pitch(self, pos: int, speed_s: Optional[float] = None):
-        self._send(self.pitch_id, pos, speed_s)
+        x, y, z = LOOK
+        dz = self._pitch_delta(pos)
+        seconds = 0.25 if speed_s is None else float(speed_s)
+        return self._move_head(x, y, z + dz, seconds=seconds)
 
     def set_yaw(self, pos: int, speed_s: Optional[float] = None):
-        self._send(self.yaw_id, pos, speed_s)
+        x, y, z = LOOK
+        dx = self._yaw_delta(pos)
+        seconds = 0.25 if speed_s is None else float(speed_s)
+        return self._move_head(x + dx, y, z, seconds=seconds)
 
     def nod(self, depth: int = 300, speed_s: Optional[float] = None):
-        c = self.center
-        self.set_pitch(c + depth, speed_s)
-        self.set_pitch(c - depth, speed_s)
-        self.set_pitch(c, speed_s)
+        x, y, z = LOOK
+        dz = max(2.0, min(8.0, float(depth) / 60.0))
+        seconds = 0.2 if speed_s is None else float(speed_s)
+        self._move_head(x, y, z + dz, seconds=seconds)
+        self._move_head(x, y, z - dz, seconds=seconds)
+        return self._move_head(x, y, z, seconds=seconds)
 
     def shake(self, width: int = 300, speed_s: Optional[float] = None):
-        c = self.center
-        self.set_yaw(c - width, speed_s)
-        self.set_yaw(c + width, speed_s)
-        self.set_yaw(c, speed_s)
+        x, y, z = LOOK
+        dx = max(2.0, min(6.0, float(width) / 80.0))
+        seconds = 0.18 if speed_s is None else float(speed_s)
+        self._move_head(x - dx, y, z, seconds=seconds)
+        self._move_head(x + dx, y, z, seconds=seconds)
+        return self._move_head(x, y, z, seconds=seconds)
 
     def wiggle(self, cycles: int = 2, amplitude: int = 200, speed_s: Optional[float] = None):
-        c = self.center
-        left = c - int(amplitude)
-        right = c + int(amplitude)
-        for _ in range(int(cycles)):
-            self.set_yaw(left, speed_s)
-            self.set_yaw(right, speed_s)
-        self.set_yaw(c, speed_s)
+        x, y, z = LOOK
+        dx = max(1.5, min(5.0, float(amplitude) / 70.0))
+        seconds = 0.16 if speed_s is None else float(speed_s)
+        for _ in range(max(1, int(cycles))):
+            self._move_head(x - dx, y, z, seconds=seconds)
+            self._move_head(x + dx, y, z, seconds=seconds)
+        return self._move_head(x, y, z, seconds=seconds)
 
     def tiny_wiggle(self, seconds: float = 2.0, amplitude: int = 90, speed_s: float = 0.12):
+        x, y, z = LOOK
+        dx = max(1.0, min(3.0, float(amplitude) / 80.0))
+        step_s = max(0.08, float(speed_s))
         end = time.time() + float(seconds)
-        c = self.center
-        left = c - int(amplitude)
-        right = c + int(amplitude)
         while time.time() < end:
-            self.set_yaw(left, speed_s)
-            self.set_yaw(right, speed_s)
-        self.set_yaw(c, speed_s)
+            self._move_head(x - dx, y, z, seconds=step_s)
+            self._move_head(x + dx, y, z, seconds=step_s)
+        return self._move_head(x, y, z, seconds=step_s)
 
     def glance_left(self, amplitude: int = 250, hold_s: float = 0.15):
-        c = self.center
-        self.set_yaw(c - int(amplitude))
-        time.sleep(hold_s)
-        self.set_yaw(c)
+        x, y, z = LOOK
+        dx = max(2.0, min(6.0, float(amplitude) / 80.0))
+        self._move_head(x - dx, y, z, seconds=0.18)
+        time.sleep(float(hold_s))
+        return self._move_head(x, y, z, seconds=0.18)
 
     def glance_right(self, amplitude: int = 250, hold_s: float = 0.15):
-        c = self.center
-        self.set_yaw(c + int(amplitude))
-        time.sleep(hold_s)
-        self.set_yaw(c)
+        x, y, z = LOOK
+        dx = max(2.0, min(6.0, float(amplitude) / 80.0))
+        self._move_head(x + dx, y, z, seconds=0.18)
+        time.sleep(float(hold_s))
+        return self._move_head(x, y, z, seconds=0.18)
 
     def look_up(self, amplitude: int = 250, hold_s: float = 0.15):
-        c = self.center
-        self.set_pitch(c + int(amplitude))
-        time.sleep(hold_s)
-        self.set_pitch(c)
+        x, y, z = LOOK
+        dz = max(2.0, min(8.0, float(amplitude) / 70.0))
+        self._move_head(x, y, z + dz, seconds=0.18)
+        time.sleep(float(hold_s))
+        return self._move_head(x, y, z, seconds=0.18)
 
     def look_down(self, amplitude: int = 250, hold_s: float = 0.15):
-        c = self.center
-        self.set_pitch(c - int(amplitude))
-        time.sleep(hold_s)
-        self.set_pitch(c)
+        x, y, z = LOOK
+        dz = max(2.0, min(8.0, float(amplitude) / 70.0))
+        self._move_head(x, y, z - dz, seconds=0.18)
+        time.sleep(float(hold_s))
+        return self._move_head(x, y, z, seconds=0.18)
 
 
 _CAM_SINGLETON: Optional[Camera] = None

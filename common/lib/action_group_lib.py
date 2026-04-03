@@ -4,11 +4,11 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Iterable
 
-from spiderpi_support import get_action_controller, repo_root
+from spiderpi_support import get_action_controller, resolve_vendor_root
 
 
 def list_actions() -> list[str]:
-    root = repo_root() / 'vendor' / 'hiwonder_spiderpi' / 'action_groups'
+    root = resolve_vendor_root() / 'action_groups'
     if not root.exists():
         return []
     return sorted(path.stem for path in root.glob('*.d6a'))
