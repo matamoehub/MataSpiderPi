@@ -15,6 +15,7 @@ LOOK = (0, 10, 34)
 CARRY = (0, 15, 14)
 PLACE = (8, 16, 5)
 POSE_MOVETIME_MS = 4
+TURN_DELTA_X = 8
 
 
 class Arm:
@@ -92,6 +93,14 @@ class Arm:
 
     def place(self):
         return self.place_pose()
+
+    def turn_left(self):
+        x, y, z = HOME
+        return self.move_to(x - TURN_DELTA_X, y, z, movetime_ms=POSE_MOVETIME_MS)
+
+    def turn_right(self):
+        x, y, z = HOME
+        return self.move_to(x + TURN_DELTA_X, y, z, movetime_ms=POSE_MOVETIME_MS)
 
     def lift(self, height: float = 6.0):
         x, y, z = CARRY

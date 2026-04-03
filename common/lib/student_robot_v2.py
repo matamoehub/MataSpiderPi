@@ -97,6 +97,12 @@ class Arm:
     def set_grip(self, pulse: int, seconds: float = 0.5):
         return self._arm.set_grip(pulse, seconds=seconds)
 
+    def turn_left(self):
+        return self._arm.turn_left()
+
+    def turn_right(self):
+        return self._arm.turn_right()
+
     def grab_at(self, x: float, y: float, z: float):
         return self._arm.grab_at(x, y, z)
 
