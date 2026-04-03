@@ -53,10 +53,10 @@ _SHAPES = {
     "smile": [
         "00111100",
         "01000010",
+        "10011001",
         "10100101",
         "10000001",
         "10100101",
-        "10011001",
         "01000010",
         "00111100",
     ],
@@ -324,9 +324,9 @@ def _show_matrix_text(text: str, seconds: float | None = None) -> dict:
         return result
 
     frames = _matrix_text_frames(value)
-    frame_delay = 0.18
+    frame_delay = 0.09
     if hold_s > 0 and frames:
-        frame_delay = max(0.08, hold_s / len(frames))
+        frame_delay = max(0.04, hold_s / len(frames))
     for frame in frames:
         _matrix_subprocess("shape", _normalize_vertical_buf(frame))
         time.sleep(frame_delay)
