@@ -138,7 +138,7 @@ def _sleep_us(value: int):
 def _normalize_vertical_buf(buf):
     rows = [str(item).strip() for item in buf]
     if not rows:
-        return ["0" * 16] * 16
+        return ["0" * 8] * 16
     width = max(len(row) for row in rows)
     if width <= 8:
         # The TM1640 buffer is 16 columns wide on SpiderPi. Center smaller
@@ -154,7 +154,17 @@ def _normalize_vertical_buf(buf):
         pad_left = pad_total // 2
         pad_right = pad_total - pad_left
         normalized.append(("0" * pad_left) + bits + ("0" * pad_right))
-    return normalized
+    # SpiderPi's TM1640 path expects a 16-column vertical buffer. Our classroom
+    # shapes are authored as 8 rows x 16 columns, so transpose them into
+    # 16 entries of 8 bits each before sending to set_buf_vertical().
+    height = len(normalized)
+    transposed = []
+    for x in range(width):
+        col = []
+        for y in range(height):
+            col.append(normalized[y][x])
+        transposed.append("".join(col))
+    return transposed
 
 
 def _matrix_subprocess(action: str, payload) -> dict:
