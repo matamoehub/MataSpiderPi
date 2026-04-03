@@ -151,7 +151,7 @@ def setup(default_domain: Optional[object] = None, backend: Optional[str] = None
     root = _find_repo_root(start)
     common_lib = _resolve_common_lib(root)
     lessons_lib = root / "lessons" / "lib"
-    for path in (common_lib, lessons_lib):
+    for path in (lessons_lib, common_lib):
         if path.exists() and str(path) not in sys.path:
             sys.path.insert(0, str(path))
     bootstrap_path = common_lib / "bootstrap.py"

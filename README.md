@@ -10,6 +10,49 @@ The repo keeps the same broad classroom shape as the other Mata robot repos, but
 - simulator shims for browser and notebook workflows
 - lessons mapped to the SpiderPi Pro tutorial topics
 
+## Python Setup
+
+This project targets Python 3.11.2.
+
+For local lesson and simulator work, create a Python 3.11.2 virtual environment and install the notebook and vision packages the lessons use:
+
+```bash
+python3.11 --version
+python3.11 -m venv .venv
+source .venv/bin/activate
+python -m pip install --upgrade pip
+python -m pip install jupyterlab notebook ipykernel numpy opencv-python mediapipe pillow
+```
+
+If `python3.11` is not installed yet, one common option on macOS is `pyenv`:
+
+```bash
+brew install pyenv
+pyenv install 3.11.2
+pyenv local 3.11.2
+python -m venv .venv
+source .venv/bin/activate
+```
+
+## Running Lessons Locally
+
+The lesson notebooks bootstrap themselves from this repo. For local simulator-style runs, start Jupyter with simulator mode enabled:
+
+```bash
+source .venv/bin/activate
+export MATA_BACKEND=sim
+export MATA_SIM=1
+jupyter lab
+```
+
+Then open a notebook such as `lessons/lesson01/level_1/Lesson01.ipynb`.
+
+Notes:
+- The local lessons use `common/lib`, the lesson loader, and the simulator shims in this repo.
+- Real robot control depends on the robot image, ROS setup, and Hiwonder hardware services being available.
+- Lesson 13 uses MediaPipe hand recognition, so `mediapipe` must be installed in the active environment.
+- The local simulator app also uses `tkinter`, which is usually included with Python installers but may need extra setup on some `pyenv` builds.
+
 ## SpiderPi Content Areas
 
 Lessons and libraries are organised around the SpiderPi Pro capability set:
