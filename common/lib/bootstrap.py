@@ -47,9 +47,9 @@ def resolve_common_lib(root: Path) -> Path:
             candidates.append(Path(value).expanduser())
 
     candidates.extend([
+        root / "common" / "lib",
         Path("/opt/robot/students/lessons_cache/common/lib"),
         Path("/opt/robot/students/lesson_cache/common/lib"),
-        root / "common" / "lib",
         Path("/opt/robot/common/lib"),
     ])
 
@@ -65,20 +65,24 @@ def resolve_common_lib(root: Path) -> Path:
 
 
 def resolve_lessons_lib(root: Path) -> Path:
-    existing = _existing_lessons_lib()
-    if existing is not None:
-        return existing
-
     candidates = []
     value = str(os.environ.get("MATA_LESSONS_LIB_DIR", "")).strip()
     if value:
         candidates.append(Path(value).expanduser())
 
+    workspace_lessons_lib = root / "lessons" / "lib"
+    if workspace_lessons_lib.exists() and workspace_lessons_lib.is_dir():
+        candidates.append(workspace_lessons_lib)
+
+    existing = _existing_lessons_lib()
+    if existing is not None:
+        candidates.append(existing)
+
     candidates.extend([
-        root / "lessons" / "lib",
         Path("/opt/robot/students/lessons_cache/lessons/lib"),
         Path("/opt/robot/students/lesson_cache/lessons/lib"),
         Path("/opt/robot/lessons/lib"),
+        workspace_lessons_lib,
     ])
 
     seen = set()

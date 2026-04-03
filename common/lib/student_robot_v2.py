@@ -191,16 +191,29 @@ class Speech:
 
 class DistanceSensor:
     def __init__(self):
-        self._sonar = get_sonar()
+        self._sonar = None
+        self._init_error: Exception | None = None
+
+    def _require_sonar(self):
+        if self._sonar is not None:
+            return self._sonar
+        if self._init_error is not None:
+            raise RuntimeError(f"SpiderPi distance sensor unavailable: {self._init_error}")
+        try:
+            self._sonar = get_sonar()
+            return self._sonar
+        except Exception as exc:
+            self._init_error = exc
+            raise RuntimeError(f"SpiderPi distance sensor unavailable: {exc}") from exc
 
     def cm(self) -> int:
-        return self._sonar.get_distance_cm(filtered=True)
+        return self._require_sonar().get_distance_cm(filtered=True)
 
     def mm(self) -> int:
-        return self._sonar.get_distance_mm(filtered=True)
+        return self._require_sonar().get_distance_mm(filtered=True)
 
     def is_close(self, threshold_cm: float = 20.0) -> bool:
-        return self._sonar.is_closer_than(threshold_cm, filtered=True)
+        return self._require_sonar().is_closer_than(threshold_cm, filtered=True)
 
 
 class RobotV2:
@@ -232,7 +245,7 @@ class RobotV2:
         self.move = self.body
         self.voice = self.sound
         self.buzzer = get_buzzer()
-        self.sonar = get_sonar()
+        self.sonar = self.distance
         self.actions = get_actions()
 
     def say(self, text: str, block: bool = True):

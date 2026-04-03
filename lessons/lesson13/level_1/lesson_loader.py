@@ -78,9 +78,9 @@ def _resolve_common_lib(root: Path) -> Path:
         if value:
             candidates.append(Path(value).expanduser())
     candidates.extend([
+        root / "common" / "lib",
         Path("/opt/robot/students/lessons_cache/common/lib"),
         Path("/opt/robot/students/lesson_cache/common/lib"),
-        root / "common" / "lib",
     ])
     for candidate in candidates:
         if candidate.is_dir():
