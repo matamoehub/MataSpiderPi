@@ -122,6 +122,49 @@ _SHAPES = {
     ],
 }
 
+_FONT_3X5 = {
+    " ": ["000", "000", "000", "000", "000"],
+    "!": ["010", "010", "010", "000", "010"],
+    "-": ["000", "000", "111", "000", "000"],
+    ".": ["000", "000", "000", "000", "010"],
+    "0": ["111", "101", "101", "101", "111"],
+    "1": ["010", "110", "010", "010", "111"],
+    "2": ["111", "001", "111", "100", "111"],
+    "3": ["111", "001", "111", "001", "111"],
+    "4": ["101", "101", "111", "001", "001"],
+    "5": ["111", "100", "111", "001", "111"],
+    "6": ["111", "100", "111", "101", "111"],
+    "7": ["111", "001", "001", "001", "001"],
+    "8": ["111", "101", "111", "101", "111"],
+    "9": ["111", "101", "111", "001", "111"],
+    "A": ["111", "101", "111", "101", "101"],
+    "B": ["110", "101", "110", "101", "110"],
+    "C": ["111", "100", "100", "100", "111"],
+    "D": ["110", "101", "101", "101", "110"],
+    "E": ["111", "100", "111", "100", "111"],
+    "F": ["111", "100", "111", "100", "100"],
+    "G": ["111", "100", "101", "101", "111"],
+    "H": ["101", "101", "111", "101", "101"],
+    "I": ["111", "010", "010", "010", "111"],
+    "J": ["001", "001", "001", "101", "111"],
+    "K": ["101", "101", "110", "101", "101"],
+    "L": ["100", "100", "100", "100", "111"],
+    "M": ["101", "111", "111", "101", "101"],
+    "N": ["101", "111", "111", "111", "101"],
+    "O": ["111", "101", "101", "101", "111"],
+    "P": ["111", "101", "111", "100", "100"],
+    "Q": ["111", "101", "101", "111", "001"],
+    "R": ["110", "101", "110", "101", "101"],
+    "S": ["111", "100", "111", "001", "111"],
+    "T": ["111", "010", "010", "010", "010"],
+    "U": ["101", "101", "101", "101", "111"],
+    "V": ["101", "101", "101", "101", "010"],
+    "W": ["101", "101", "111", "111", "101"],
+    "X": ["101", "101", "010", "101", "101"],
+    "Y": ["101", "101", "010", "010", "010"],
+    "Z": ["111", "001", "010", "100", "111"],
+}
+
 _TM1640_CMD1 = 64
 _TM1640_CMD2 = 192
 _TM1640_CMD3 = 128
@@ -219,6 +262,34 @@ def _coerce_hold_seconds(seconds) -> float:
     if seconds is None:
         return 0.0
     return max(0.0, float(seconds))
+
+
+def _matrix_text_rows(text: str) -> list[str]:
+    value = str(text or "").upper()
+    chars = [ch for ch in value if ch in _FONT_3X5][:4]
+    if not chars:
+        chars = [" "]
+    rows5 = [""] * 5
+    for idx, ch in enumerate(chars):
+        glyph = _FONT_3X5.get(ch, _FONT_3X5[" "])
+        for y in range(5):
+            rows5[y] += glyph[y]
+            if idx != len(chars) - 1:
+                rows5[y] += "0"
+    width = min(16, max(len(r) for r in rows5))
+    rows8 = ["0" * width]
+    for row in rows5:
+        rows8.append(row[:width].ljust(width, "0"))
+    rows8.extend(["0" * width, "0" * width])
+    return [r[:16].ljust(16, "0") for r in rows8[:8]]
+
+
+def _first_visible_text(lines) -> str:
+    for line in lines:
+        value = str(line or "").strip()
+        if value:
+            return value
+    return ""
 
 
 class _MatrixDisplayCompat:
@@ -442,23 +513,63 @@ class Display:
         print("[display]", " | ".join(x for x in rendered if x))
         return rendered
 
-    def text(self, line1: str = "", line2: str = "", line3: str = "", line4: str = ""):
+    def text(self, line1: str = "", line2: str = "", line3: str = "", line4: str = "", seconds: float | None = None):
         lines = [line1, line2, line3, line4]
         echoed = self._console_echo(*lines)
+        visible = _first_visible_text(lines)
+        matrix_result = None
+        if visible:
+            try:
+                print(f"[display] matrix text -> text={visible!r} seconds={seconds!r} via system-python")
+                matrix_result = _matrix_subprocess("shape", _normalize_vertical_buf(_matrix_text_rows(visible)))
+                hold_s = _coerce_hold_seconds(seconds)
+                if hold_s > 0:
+                    time.sleep(hold_s)
+                    _matrix_subprocess("clear", None)
+                    matrix_result["hold_seconds"] = hold_s
+            except Exception as exc:
+                print(f"[display] matrix text fallback -> text={visible!r} error={exc}")
+                matrix_result = {"matrix_text_error": str(exc), "visible_text": visible}
         try:
             for index, text in enumerate(lines, start=1):
                 self._oled_write(index, str(text)[:20])
-            return {"lines": lines, "console_echo": echoed}
+            result = {"lines": lines, "console_echo": echoed}
+            if matrix_result is not None:
+                result["matrix"] = matrix_result
+            return result
         except Exception as exc:
-            return {"lines": lines, "console_echo": echoed, "display_error": str(exc)}
+            result = {"lines": lines, "console_echo": echoed, "display_error": str(exc)}
+            if matrix_result is not None:
+                result["matrix"] = matrix_result
+            return result
 
-    def line(self, line_number: int, text: str):
+    def line(self, line_number: int, text: str, seconds: float | None = None):
         rendered = self._console_echo(f"Line {int(line_number)}", str(text)[:20])
+        matrix_result = None
+        value = str(text)[:20]
+        if value.strip():
+            try:
+                print(f"[display] matrix line -> line={int(line_number)} text={value!r} seconds={seconds!r} via system-python")
+                matrix_result = _matrix_subprocess("shape", _normalize_vertical_buf(_matrix_text_rows(value)))
+                hold_s = _coerce_hold_seconds(seconds)
+                if hold_s > 0:
+                    time.sleep(hold_s)
+                    _matrix_subprocess("clear", None)
+                    matrix_result["hold_seconds"] = hold_s
+            except Exception as exc:
+                print(f"[display] matrix line fallback -> line={int(line_number)} text={value!r} error={exc}")
+                matrix_result = {"matrix_text_error": str(exc), "visible_text": value}
         try:
-            self._oled_write(int(line_number), str(text)[:20])
-            return {"line": int(line_number), "text": str(text)[:20], "console_echo": rendered}
+            self._oled_write(int(line_number), value)
+            result = {"line": int(line_number), "text": value, "console_echo": rendered}
+            if matrix_result is not None:
+                result["matrix"] = matrix_result
+            return result
         except Exception as exc:
-            return {"line": int(line_number), "text": str(text)[:20], "console_echo": rendered, "display_error": str(exc)}
+            result = {"line": int(line_number), "text": value, "console_echo": rendered, "display_error": str(exc)}
+            if matrix_result is not None:
+                result["matrix"] = matrix_result
+            return result
 
     def number(self, value: int | float, seconds: float | None = None):
         try:
