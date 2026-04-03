@@ -54,6 +54,7 @@ Notes:
 - The local simulator app also uses `tkinter`, which is usually included with Python installers but may need extra setup on some `pyenv` builds.
 - The robot vision stack should stay on `numpy<2` for now. If OpenCV starts failing with `_ARRAY_API not found` or `numpy.core.multiarray failed to import`, reinstall the compatible stack with `python -m pip install --force-reinstall --no-cache-dir 'numpy<2' 'opencv-python<4.11' mediapipe matplotlib pillow`.
 - Sonar and I2C-backed sensor features need `smbus2` in the active environment.
+- SpiderPi's matrix display code expects the older `python3-gpiod` API, so keep `gpiod` on a `<2` release in the Jupyter environment.
 
 ## Robot Runtime Notes
 
@@ -69,7 +70,7 @@ If the robot already has a broken NumPy 2 / OpenCV combination, force a repair:
 
 ```bash
 source /opt/robot/ops_web/.venv/bin/activate
-python -m pip install --force-reinstall --no-cache-dir 'numpy<2' 'opencv-python<4.11' mediapipe matplotlib pillow smbus2
+python -m pip install --force-reinstall --no-cache-dir 'numpy<2' 'opencv-python<4.11' mediapipe matplotlib pillow smbus2 'gpiod<2'
 ```
 
 ## SpiderPi Content Areas

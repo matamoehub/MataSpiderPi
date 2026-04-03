@@ -140,6 +140,13 @@ class _MatrixDisplayCompat:
         if hasattr(gpiod, "Chip"):
             return gpiod.Chip(candidate)
         if hasattr(gpiod, "chip"):
+            # The older 1.x python gpiod API typically expects a chip name like
+            # "gpiochip4" rather than a /dev path.
+            if str(candidate).startswith("/dev/"):
+                try:
+                    return gpiod.chip(Path(candidate).name)
+                except Exception:
+                    pass
             return gpiod.chip(candidate)
         raise RuntimeError("Unsupported gpiod API: no Chip/chip constructor")
 

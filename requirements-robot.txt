@@ -7,4 +7,4 @@ mediapipe
 pillow
 matplotlib
 smbus2
-gpiod
+gpiod<2
