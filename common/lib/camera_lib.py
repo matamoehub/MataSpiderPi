@@ -7,8 +7,8 @@ from typing import Optional
 from arm_lib import LOOK, get_arm
 
 HEAD_PITCH = 0
-HEAD_DEFAULT_SECONDS = 0.06
-HEAD_MOTION_SECONDS = 0.07
+HEAD_DEFAULT_SECONDS = 0.03
+HEAD_MOTION_SECONDS = 0.035
 
 
 class Camera:
