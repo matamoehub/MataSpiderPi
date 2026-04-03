@@ -85,6 +85,9 @@ class Arm:
     def move(self, x: float, y: float, z: float, seconds: float = 1.0):
         return self._arm.move(x, y, z, seconds=seconds)
 
+    def look(self):
+        return self._arm.look()
+
     def open(self):
         return self._arm.open()
 
@@ -106,8 +109,17 @@ class Arm:
     def center_turn(self):
         return self._arm.center_turn()
 
+    def lift(self, height: float = 6.0):
+        return self._arm.lift(height=height)
+
+    def lower(self, height: float = 3.0):
+        return self._arm.lower(height=height)
+
     def grab_at(self, x: float, y: float, z: float):
         return self._arm.grab_at(x, y, z)
+
+    def pick(self, x: float, y: float, z: float):
+        return self._arm.pick(x, y, z)
 
     def carry(self):
         return self._arm.carry()
@@ -157,6 +169,9 @@ class Vision:
         return self._vision.recognize_hands(show=show)
 
     def show_hands(self, show: bool = True):
+        return self._vision.show_hands(show=show)
+
+    def detect_hands(self, show: bool = True):
         return self._vision.show_hands(show=show)
 
     def detect_pose(self, show: bool = True):
@@ -269,14 +284,14 @@ class RobotV2:
     def help(self) -> dict[str, list[str]]:
         return {
             "body": ["forward", "backward", "left", "right", "turn_left", "turn_right", "stop", "dance", "wave", "attack", "kick", "twist"],
-            "arm": ["home", "ready", "move", "open", "half_open", "close", "set_grip", "grab_at", "carry", "place"],
-            "vision": ["snapshot", "capture", "find_color", "show_color", "can_see", "count_color", "color_position", "detect_faces", "show_faces", "recognize_faces", "recognize_hands", "show_hands", "detect_pose", "show_pose", "recognize_pose", "find_face", "find_tag", "find_shapes"],
+            "arm": ["home", "ready", "move", "look", "open", "half_open", "close", "set_grip", "turn_left", "turn_right", "center_turn", "lift", "lower", "grab_at", "pick", "carry", "place"],
+            "vision": ["snapshot", "capture", "find_color", "show_color", "can_see", "count_color", "color_position", "detect_faces", "show_faces", "recognize_faces", "find_face", "recognize_hands", "show_hands", "detect_hands", "detect_pose", "show_pose", "recognize_pose", "find_tag", "find_shapes"],
             "sound": ["say", "beep", "melody"],
             "speech": ["say"],
             "distance": ["cm", "mm", "is_close"],
             "lights": ["robot", "sonar", "all", "off", "red", "green", "blue", "yellow", "purple"],
             "display": ["text", "line", "number", "clear_matrix", "shape", "smile", "triangle", "square", "diamond"],
-            "camera": ["center_all", "nod", "shake", "wiggle", "glance_left", "glance_right", "look_up", "look_down"],
+            "camera": ["center_all", "set_yaw", "set_pitch", "glance_left", "glance_right", "look_up", "look_down", "nod", "shake", "wiggle", "tiny_wiggle"],
         }
 
 
