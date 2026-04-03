@@ -324,9 +324,9 @@ def _show_matrix_text(text: str, seconds: float | None = None) -> dict:
         return result
 
     frames = _matrix_text_frames(value)
-    frame_delay = 0.045
+    frame_delay = 0.0225
     if hold_s > 0 and frames:
-        frame_delay = max(0.02, hold_s / len(frames))
+        frame_delay = max(0.01, hold_s / len(frames))
     for frame in frames:
         _matrix_subprocess("shape", _normalize_vertical_buf(frame))
         time.sleep(frame_delay)
