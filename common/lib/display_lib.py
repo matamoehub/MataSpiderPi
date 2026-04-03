@@ -102,11 +102,11 @@ class _MatrixDisplayCompat:
                 continue
             seen.add(candidate)
             try:
-                maybe_chip = gpiod.Chip(candidate)
-                maybe_clk = maybe_chip.get_line(int(clk))
-                maybe_dio = maybe_chip.get_line(int(dio))
-                maybe_clk.request(consumer="tm1640-clk", type=gpiod.LINE_REQ_DIR_OUT)
-                maybe_dio.request(consumer="tm1640-dio", type=gpiod.LINE_REQ_DIR_OUT)
+                maybe_chip = self._open_chip(gpiod, candidate)
+                maybe_clk = self._get_line(gpiod, maybe_chip, int(clk))
+                maybe_dio = self._get_line(gpiod, maybe_chip, int(dio))
+                self._request_output(gpiod, maybe_clk, "tm1640-clk")
+                self._request_output(gpiod, maybe_dio, "tm1640-dio")
                 self._chip = maybe_chip
                 self.clk = maybe_clk
                 self.dio = maybe_dio
@@ -134,6 +134,33 @@ class _MatrixDisplayCompat:
         _sleep_us(_TM1640_DELAY_US)
         self._write_data_cmd()
         self._write_dsp_ctrl()
+
+    @staticmethod
+    def _open_chip(gpiod, candidate: str):
+        if hasattr(gpiod, "Chip"):
+            return gpiod.Chip(candidate)
+        if hasattr(gpiod, "chip"):
+            return gpiod.chip(candidate)
+        raise RuntimeError("Unsupported gpiod API: no Chip/chip constructor")
+
+    @staticmethod
+    def _get_line(gpiod, chip, offset: int):
+        if hasattr(chip, "get_line"):
+            return chip.get_line(int(offset))
+        raise RuntimeError("Unsupported gpiod API: chip has no get_line()")
+
+    @staticmethod
+    def _request_output(gpiod, line, consumer: str):
+        if hasattr(gpiod, "LINE_REQ_DIR_OUT"):
+            line.request(consumer=str(consumer), type=gpiod.LINE_REQ_DIR_OUT)
+            return
+        if hasattr(gpiod, "line_request"):
+            request = gpiod.line_request()
+            request.consumer = str(consumer)
+            request.request_type = gpiod.line_request.DIRECTION_OUTPUT
+            line.request(request)
+            return
+        raise RuntimeError("Unsupported gpiod API: no output request mode available")
 
     def _start(self):
         self.dio.set_value(0)
@@ -280,19 +307,31 @@ class Display:
             result = self._matrix_fallback_text("Number", str(value), "", "")
             result["number"] = value
             return result
-        display = self._matrix_display()
-        display.set_number(value)
-        display.update_display()
-        return {"number": value}
+        try:
+            display = self._matrix_display()
+            display.set_number(value)
+            display.update_display()
+            return {"number": value}
+        except Exception as exc:
+            result = self._matrix_fallback_text("Number", str(value), "", "")
+            result["number"] = value
+            result["dot_matrix_error"] = str(exc)
+            return result
 
     def clear_matrix(self):
         if dot_matrix_sensor is None:
             result = self._matrix_fallback_text("", "", "", "")
             result["matrix"] = "cleared_via_oled"
             return result
-        display = self._matrix_display()
-        display.clear()
-        return {"matrix": "cleared"}
+        try:
+            display = self._matrix_display()
+            display.clear()
+            return {"matrix": "cleared"}
+        except Exception as exc:
+            result = self._matrix_fallback_text("", "", "", "")
+            result["matrix"] = "cleared_via_oled"
+            result["dot_matrix_error"] = str(exc)
+            return result
 
     def shape(self, name: str = "smile"):
         key = str(name).strip().lower()
@@ -302,10 +341,16 @@ class Display:
             result = self._matrix_fallback_text("Shape", key.title(), "", "")
             result["shape"] = key
             return result
-        display = self._matrix_display()
-        display.set_buf_vertical(_SHAPES[key])
-        display.update_display()
-        return {"shape": key}
+        try:
+            display = self._matrix_display()
+            display.set_buf_vertical(_SHAPES[key])
+            display.update_display()
+            return {"shape": key}
+        except Exception as exc:
+            result = self._matrix_fallback_text("Shape", key.title(), "", "")
+            result["shape"] = key
+            result["dot_matrix_error"] = str(exc)
+            return result
 
     def smile(self):
         return self.shape("smile")
