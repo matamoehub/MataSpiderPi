@@ -9,6 +9,7 @@ import sys
 from typing import Dict, Optional
 
 COMMON_MODULES = [
+    "time",
     "robot_moves",
     "arm_lib",
     "action_group_lib",
