@@ -1,6 +1,9 @@
 #!/usr/bin/env python3
 from __future__ import annotations
 
+from pathlib import Path
+import time
+
 from spiderpi_support import ensure_vendor_paths, get_board
 
 ensure_vendor_paths()
@@ -56,6 +59,142 @@ _SHAPES = {
     ],
 }
 
+_TM1640_CMD1 = 64
+_TM1640_CMD2 = 192
+_TM1640_CMD3 = 128
+_TM1640_DSP_ON = 8
+_TM1640_DELAY_US = 10
+
+
+def _sleep_us(value: int):
+    time.sleep(float(value) / 1_000_000.0)
+
+
+class _MatrixDisplayCompat:
+    digit_dict = {
+        "0": 0x3F,
+        "1": 0x06,
+        "2": 0x5B,
+        "3": 0x4F,
+        "4": 0x66,
+        "5": 0x6D,
+        "6": 0x7D,
+        "7": 0x07,
+        "8": 0x7F,
+        "9": 0x6F,
+        ".": 0x80,
+        "-": 0x40,
+    }
+
+    def __init__(self, clk: int, dio: int, brightness: int = 7):
+        import gpiod  # type: ignore
+
+        self.display_buf = [0] * 16
+        self._brightness = max(0, min(7, int(brightness)))
+
+        chip = None
+        last_error = None
+        candidates = [str(path) for path in sorted(Path("/dev").glob("gpiochip*"))]
+        candidates.extend([path.split("/")[-1] for path in candidates])
+        seen = set()
+        for candidate in candidates:
+            if candidate in seen:
+                continue
+            seen.add(candidate)
+            try:
+                maybe_chip = gpiod.Chip(candidate)
+                maybe_clk = maybe_chip.get_line(int(clk))
+                maybe_dio = maybe_chip.get_line(int(dio))
+                maybe_clk.request(consumer="tm1640-clk", type=gpiod.LINE_REQ_DIR_OUT)
+                maybe_dio.request(consumer="tm1640-dio", type=gpiod.LINE_REQ_DIR_OUT)
+                self._chip = maybe_chip
+                self.clk = maybe_clk
+                self.dio = maybe_dio
+                chip = maybe_chip
+                break
+            except Exception as exc:  # pragma: no cover - hardware-specific
+                last_error = exc
+                try:
+                    maybe_clk.release()
+                except Exception:
+                    pass
+                try:
+                    maybe_dio.release()
+                except Exception:
+                    pass
+                continue
+        if chip is None:
+            raise RuntimeError(
+                "SpiderPi dot matrix display could not find a usable gpiochip device"
+                + (f": {last_error}" if last_error else "")
+            )
+
+        self.clk.set_value(0)
+        self.dio.set_value(0)
+        _sleep_us(_TM1640_DELAY_US)
+        self._write_data_cmd()
+        self._write_dsp_ctrl()
+
+    def _start(self):
+        self.dio.set_value(0)
+        _sleep_us(_TM1640_DELAY_US)
+        self.clk.set_value(0)
+        _sleep_us(_TM1640_DELAY_US)
+
+    def _stop(self):
+        self.dio.set_value(0)
+        _sleep_us(_TM1640_DELAY_US)
+        self.clk.set_value(1)
+        _sleep_us(_TM1640_DELAY_US)
+        self.dio.set_value(1)
+
+    def _write_byte(self, value: int):
+        for i in range(8):
+            self.dio.set_value((int(value) >> i) & 1)
+            _sleep_us(_TM1640_DELAY_US)
+            self.clk.set_value(1)
+            _sleep_us(_TM1640_DELAY_US)
+            self.clk.set_value(0)
+            _sleep_us(_TM1640_DELAY_US)
+
+    def _write_data_cmd(self):
+        self._start()
+        self._write_byte(_TM1640_CMD1)
+        self._stop()
+
+    def _write_dsp_ctrl(self):
+        self._start()
+        self._write_byte(_TM1640_CMD3 | _TM1640_DSP_ON | self._brightness)
+        self._stop()
+
+    def write(self, rows, pos: int = 0):
+        self._write_data_cmd()
+        self._start()
+        self._write_byte(_TM1640_CMD2 | int(pos))
+        for row in rows:
+            self._write_byte(int(row))
+        self._stop()
+        self._write_dsp_ctrl()
+
+    def clear(self):
+        self.display_buf = [0] * 16
+        self.update_display()
+
+    def set_number(self, number):
+        self.display_buf = [self.digit_dict["0"]] * 4
+        num = list(str(number))
+        num.reverse()
+        for i in range(len(num)):
+            self.display_buf[-i - 1] = self.digit_dict[num[i]]
+            if num[i] == ".":
+                self.display_buf[-i - 2] = self.digit_dict[num[i - 1]] + self.digit_dict["."]
+
+    def set_buf_vertical(self, buf):
+        self.display_buf = [int(item, 2) for item in buf]
+
+    def update_display(self):
+        self.write(self.display_buf)
+
 
 class Display:
     """
@@ -80,10 +219,24 @@ class Display:
 
     def _matrix_display(self):
         if self._matrix is None:
-            if dot_matrix_sensor is None:
-                detail = f": {_DOT_MATRIX_IMPORT_ERROR}" if _DOT_MATRIX_IMPORT_ERROR else ""
-                raise RuntimeError(f"SpiderPi dot matrix display is unavailable{detail}")
-            self._matrix = dot_matrix_sensor.TM1640(dio=7, clk=8)
+            errors = []
+            if dot_matrix_sensor is not None:
+                try:
+                    self._matrix = dot_matrix_sensor.TM1640(dio=7, clk=8)
+                    return self._matrix
+                except Exception as exc:
+                    errors.append(f"vendor TM1640 failed: {exc}")
+            else:
+                if _DOT_MATRIX_IMPORT_ERROR:
+                    errors.append(str(_DOT_MATRIX_IMPORT_ERROR))
+            try:
+                self._matrix = _MatrixDisplayCompat(dio=7, clk=8)
+            except Exception as exc:
+                errors.append(f"compat TM1640 failed: {exc}")
+                raise RuntimeError(
+                    "SpiderPi dot matrix display is unavailable"
+                    + (": " + " | ".join(errors) if errors else "")
+                ) from exc
         return self._matrix
 
     def _matrix_fallback_text(self, *lines: str):
