@@ -8,7 +8,7 @@ from arm_lib import LOOK, get_arm
 
 HEAD_PITCH = 0
 HEAD_DEFAULT_SECONDS = 0.00375
-HEAD_MOTION_SECONDS = 0.00875
+HEAD_MOTION_SECONDS = 0.03
 
 
 class Camera:
@@ -31,11 +31,11 @@ class Camera:
         arm = self._require_arm()
         return arm.move_to(x, y, z, pitch=pitch, movetime_ms=int(float(seconds) * 1000))
 
-    def _yaw_delta(self, pos: int, center: int = 1500, max_delta: float = 6.0) -> float:
+    def _yaw_delta(self, pos: int, center: int = 1500, max_delta: float = 10.0) -> float:
         ratio = max(-1.0, min(1.0, (float(pos) - float(center)) / 500.0))
         return ratio * max_delta
 
-    def _pitch_delta(self, pos: int, center: int = 1500, max_delta: float = 8.0) -> float:
+    def _pitch_delta(self, pos: int, center: int = 1500, max_delta: float = 12.0) -> float:
         ratio = max(-1.0, min(1.0, (float(pos) - float(center)) / 500.0))
         return ratio * max_delta
 
@@ -57,7 +57,7 @@ class Camera:
 
     def nod(self, depth: int = 300, speed_s: Optional[float] = None):
         x, y, z = LOOK
-        dz = max(2.0, min(8.0, float(depth) / 60.0))
+        dz = max(4.0, min(12.0, float(depth) / 35.0))
         seconds = HEAD_MOTION_SECONDS if speed_s is None else float(speed_s)
         self._move_head(x, y, z + dz, seconds=seconds)
         self._move_head(x, y, z - dz, seconds=seconds)
@@ -65,7 +65,7 @@ class Camera:
 
     def shake(self, width: int = 300, speed_s: Optional[float] = None):
         x, y, z = LOOK
-        dx = max(2.0, min(6.0, float(width) / 80.0))
+        dx = max(4.0, min(10.0, float(width) / 45.0))
         seconds = HEAD_MOTION_SECONDS if speed_s is None else float(speed_s)
         self._move_head(x - dx, y, z, seconds=seconds)
         self._move_head(x + dx, y, z, seconds=seconds)
@@ -73,7 +73,7 @@ class Camera:
 
     def wiggle(self, cycles: int = 2, amplitude: int = 200, speed_s: Optional[float] = None):
         x, y, z = LOOK
-        dx = max(1.5, min(5.0, float(amplitude) / 70.0))
+        dx = max(3.0, min(8.0, float(amplitude) / 35.0))
         seconds = HEAD_MOTION_SECONDS if speed_s is None else float(speed_s)
         for _ in range(max(1, int(cycles))):
             self._move_head(x - dx, y, z, seconds=seconds)
@@ -92,28 +92,28 @@ class Camera:
 
     def glance_left(self, amplitude: int = 250, hold_s: float = 0.15):
         x, y, z = LOOK
-        dx = max(2.0, min(6.0, float(amplitude) / 80.0))
+        dx = max(4.0, min(10.0, float(amplitude) / 45.0))
         self._move_head(x - dx, y, z, seconds=HEAD_MOTION_SECONDS)
         time.sleep(float(hold_s))
         return self._move_head(x, y, z, seconds=HEAD_MOTION_SECONDS)
 
     def glance_right(self, amplitude: int = 250, hold_s: float = 0.15):
         x, y, z = LOOK
-        dx = max(2.0, min(6.0, float(amplitude) / 80.0))
+        dx = max(4.0, min(10.0, float(amplitude) / 45.0))
         self._move_head(x + dx, y, z, seconds=HEAD_MOTION_SECONDS)
         time.sleep(float(hold_s))
         return self._move_head(x, y, z, seconds=HEAD_MOTION_SECONDS)
 
     def look_up(self, amplitude: int = 250, hold_s: float = 0.15):
         x, y, z = LOOK
-        dz = max(2.0, min(8.0, float(amplitude) / 70.0))
+        dz = max(4.0, min(12.0, float(amplitude) / 35.0))
         self._move_head(x, y, z + dz, seconds=HEAD_MOTION_SECONDS)
         time.sleep(float(hold_s))
         return self._move_head(x, y, z, seconds=HEAD_MOTION_SECONDS)
 
     def look_down(self, amplitude: int = 250, hold_s: float = 0.15):
         x, y, z = LOOK
-        dz = max(2.0, min(8.0, float(amplitude) / 70.0))
+        dz = max(4.0, min(12.0, float(amplitude) / 35.0))
         self._move_head(x, y, z - dz, seconds=HEAD_MOTION_SECONDS)
         time.sleep(float(hold_s))
         return self._move_head(x, y, z, seconds=HEAD_MOTION_SECONDS)
