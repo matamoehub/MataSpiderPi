@@ -123,13 +123,13 @@ class Camera:
         return self._set_turn(HEAD_TURN_CENTER, seconds=step_s)
 
     def glance_left(self, amplitude: int = 250, hold_s: float = 0.15):
-        delta = max(40, min(140, int(float(amplitude) / 2.0)))
+        delta = max(40, min(210, int(float(amplitude) * 0.75)))
         self._set_turn(HEAD_TURN_CENTER + delta, seconds=HEAD_MOTION_SECONDS)
         time.sleep(float(hold_s))
         return self._set_turn(HEAD_TURN_CENTER, seconds=HEAD_MOTION_SECONDS)
 
     def glance_right(self, amplitude: int = 250, hold_s: float = 0.15):
-        delta = max(40, min(140, int(float(amplitude) / 2.0)))
+        delta = max(40, min(210, int(float(amplitude) * 0.75)))
         self._set_turn(HEAD_TURN_CENTER - delta, seconds=HEAD_MOTION_SECONDS)
         time.sleep(float(hold_s))
         return self._set_turn(HEAD_TURN_CENTER, seconds=HEAD_MOTION_SECONDS)
