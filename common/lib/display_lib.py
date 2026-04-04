@@ -218,6 +218,39 @@ _FONT_3X5 = {
     "Z": ["111", "001", "010", "100", "111"],
 }
 
+_RPS_ICONS = {
+    "rock": [
+        "00011000",
+        "00111100",
+        "01111110",
+        "01111110",
+        "01111110",
+        "00111100",
+        "00011000",
+        "00000000",
+    ],
+    "paper": [
+        "00111100",
+        "00100100",
+        "00100100",
+        "00100100",
+        "00100100",
+        "00100100",
+        "00111100",
+        "00000000",
+    ],
+    "scissors": [
+        "01000010",
+        "00100100",
+        "00011000",
+        "00011000",
+        "00100100",
+        "01000010",
+        "00011000",
+        "00000000",
+    ],
+}
+
 _TM1640_CMD1 = 64
 _TM1640_CMD2 = 192
 _TM1640_CMD3 = 128
@@ -385,6 +418,15 @@ def _show_matrix_text(text: str, seconds: float | None = None) -> dict:
         time.sleep(frame_delay)
     _matrix_subprocess("clear", None)
     return {"ok": True, "action": "text_scroll", "frames": len(frames), "frame_delay": frame_delay}
+
+
+def _compose_side_by_side(left_rows: list[str], right_rows: list[str]) -> list[str]:
+    rows: list[str] = []
+    for left, right in zip(left_rows[:8], right_rows[:8]):
+        rows.append(f"{left[:8].ljust(8, '0')}{right[:8].ljust(8, '0')}")
+    while len(rows) < 8:
+        rows.append("0" * 16)
+    return rows[:8]
 
 
 def _first_visible_text(lines) -> str:
@@ -691,6 +733,33 @@ class Display:
             print(f"[display] matrix number fallback -> value={value!r} error={exc}")
             result = self._matrix_fallback_text("Number", str(value), "", "")
             result["number"] = value
+            result["dot_matrix_error"] = str(exc)
+            return result
+
+    def rps(self, spider_move: str, human_move: str, seconds: float | None = 3.0):
+        left = str(spider_move or "").strip().lower()
+        right = str(human_move or "").strip().lower()
+        if left not in _RPS_ICONS:
+            raise ValueError(f"Unknown spider move: {spider_move}")
+        if right not in _RPS_ICONS:
+            raise ValueError(f"Unknown human move: {human_move}")
+        rows = _compose_side_by_side(_RPS_ICONS[left], _RPS_ICONS[right])
+        try:
+            print(f"[display] matrix rps -> spider={left!r} human={right!r} seconds={seconds!r} via system-python")
+            result = _matrix_subprocess("shape", _normalize_vertical_buf(rows))
+            result["spider_move"] = left
+            result["human_move"] = right
+            hold_s = _coerce_hold_seconds(seconds)
+            if hold_s > 0:
+                time.sleep(hold_s)
+                _matrix_subprocess("clear", None)
+                result["hold_seconds"] = hold_s
+            return result
+        except Exception as exc:
+            print(f"[display] matrix rps fallback -> spider={left!r} human={right!r} error={exc}")
+            result = self._matrix_fallback_text("Spider", left.title(), "Human", right.title())
+            result["spider_move"] = left
+            result["human_move"] = right
             result["dot_matrix_error"] = str(exc)
             return result
 
