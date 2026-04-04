@@ -15,6 +15,17 @@ def _require_base():
     return _base_vision
 
 
+def _camera_error_result(activity: str, exc: Exception, show: bool = True) -> dict[str, Any]:
+    return {
+        "ok": False,
+        "activity": activity,
+        "show": bool(show),
+        "camera_available": False,
+        "error": str(exc),
+        "message": "SpiderPi camera is unavailable. Reconnect the USB camera or check CAM_INDEX.",
+    }
+
+
 def _simple_color_result(color: str, raw: dict[str, Any]) -> dict[str, Any]:
     objects = list(raw.get("objects") or [])
     first = objects[0] if objects else None
@@ -42,11 +53,25 @@ class SpiderVision:
 
     def snapshot(self, show: bool = True, save_path: str | None = None):
         base = _require_base()
-        return base.capture(show=show, save_path=save_path, title="SpiderPi Camera")
+        try:
+            raw = base.capture(show=show, save_path=save_path, title="SpiderPi Camera")
+        except RuntimeError as exc:
+            return _camera_error_result("snapshot", exc, show=show)
+        return {"ok": True, "activity": "snapshot", "camera_available": True, **raw}
 
     def find_color(self, color: str = "red", show: bool = True, save_path: str | None = None) -> dict[str, Any]:
         base = _require_base()
-        raw = base.find_color_objects(color=color, show=show, save_path=save_path)
+        try:
+            raw = base.find_color_objects(color=color, show=show, save_path=save_path)
+        except RuntimeError as exc:
+            result = _camera_error_result("find_color", exc, show=show)
+            result["color"] = str(color)
+            result["count"] = 0
+            result["found"] = False
+            result["objects"] = []
+            result["first"] = None
+            result["path"] = None
+            return result
         return _simple_color_result(color, raw)
 
     def count_color(self, color: str = "red", show: bool = False) -> int:
@@ -74,7 +99,17 @@ class SpiderVision:
 
     def detect_faces(self, show: bool = True) -> dict[str, Any]:
         base = _require_base()
-        raw = base.detect_faces(show=show)
+        try:
+            raw = base.detect_faces(show=show)
+        except RuntimeError as exc:
+            result = _camera_error_result("face_detection", exc, show=show)
+            result["engine"] = "mediapipe"
+            result["vendor_demo"] = "functions/face_detect.py"
+            result["found"] = False
+            result["count"] = 0
+            result["faces"] = []
+            result["path"] = None
+            return result
         return {
             "ok": True,
             "activity": "face_detection",
@@ -99,7 +134,17 @@ class SpiderVision:
 
     def recognize_hands(self, show: bool = True) -> dict[str, Any]:
         base = _require_base()
-        raw = base.recognize_hands(show=show)
+        try:
+            raw = base.recognize_hands(show=show)
+        except RuntimeError as exc:
+            result = _camera_error_result("hand_recognition", exc, show=show)
+            result["engine"] = "mediapipe"
+            result["found"] = False
+            result["count"] = 0
+            result["hands"] = []
+            result["game_moves"] = []
+            result["path"] = None
+            return result
         return {
             "ok": True,
             "activity": "hand_recognition",
