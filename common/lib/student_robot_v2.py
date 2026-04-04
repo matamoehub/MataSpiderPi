@@ -290,7 +290,7 @@ class RobotV2:
             "speech": ["say"],
             "distance": ["cm", "mm", "is_close"],
             "lights": ["robot", "sonar", "all", "off", "red", "green", "blue", "yellow", "purple"],
-            "display": ["text", "line", "number", "clear_matrix", "shape", "smile", "triangle", "square", "diamond"],
+            "display": ["text", "line", "number", "clear_matrix", "shape", "eyes", "look_left", "look_right", "look_up", "look_down", "wink", "blink", "sleep", "shut_eyes", "smile", "triangle", "square", "diamond"],
             "camera": ["center_all", "set_yaw", "set_pitch", "glance_left", "glance_right", "look_up", "look_down", "nod", "shake", "wiggle", "tiny_wiggle"],
         }
 

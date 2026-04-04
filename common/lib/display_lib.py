@@ -60,6 +60,96 @@ _SHAPES = {
         "01000010",
         "00111100",
     ],
+    "eyes": [
+        "0000000000000000",
+        "0011001100110011",
+        "0111011101110111",
+        "0111011101110111",
+        "0111011101110111",
+        "0011001100110011",
+        "0000000000000000",
+        "0000000000000000",
+    ],
+    "eyes_left": [
+        "0000000000000000",
+        "0110011001100110",
+        "1110111011101110",
+        "1110111011101110",
+        "1110111011101110",
+        "0110011001100110",
+        "0000000000000000",
+        "0000000000000000",
+    ],
+    "eyes_right": [
+        "0000000000000000",
+        "0001100110011001",
+        "0011101110111011",
+        "0011101110111011",
+        "0011101110111011",
+        "0001100110011001",
+        "0000000000000000",
+        "0000000000000000",
+    ],
+    "eyes_up": [
+        "0011001100110011",
+        "0111011101110111",
+        "0111011101110111",
+        "0011001100110011",
+        "0000000000000000",
+        "0000000000000000",
+        "0000000000000000",
+        "0000000000000000",
+    ],
+    "eyes_down": [
+        "0000000000000000",
+        "0000000000000000",
+        "0000000000000000",
+        "0000000000000000",
+        "0011001100110011",
+        "0111011101110111",
+        "0111011101110111",
+        "0011001100110011",
+    ],
+    "wink": [
+        "0000000000000000",
+        "0011001100000000",
+        "0111011101111111",
+        "0111011100000000",
+        "0111011101111111",
+        "0011001100000000",
+        "0000000000000000",
+        "0000000000000000",
+    ],
+    "blink": [
+        "0000000000000000",
+        "0000000000000000",
+        "1111111111111111",
+        "1111111111111111",
+        "0000000000000000",
+        "0000000000000000",
+        "0000000000000000",
+        "0000000000000000",
+    ],
+    "sleep": [
+        "1100000011000000",
+        "0110000001100000",
+        "0011000000110000",
+        "0001100000011000",
+        "0000110000001100",
+        "0000011000000110",
+        "0000001100000011",
+        "0000000000000000",
+    ],
+    "shut_eyes": [
+        "0000000000000000",
+        "0000000000000000",
+        "1111111111111111",
+        "0000000000000000",
+        "1111111111111111",
+        "0000000000000000",
+        "0000000000000000",
+        "0000000000000000",
+    ],
     "test_left": [
         "1111111100000000",
         "1111111100000000",
@@ -663,6 +753,33 @@ class Display:
 
     def smile(self, seconds: float | None = None):
         return self.shape("smile", seconds=seconds)
+
+    def eyes(self, seconds: float | None = None):
+        return self.shape("eyes", seconds=seconds)
+
+    def look_left(self, seconds: float | None = None):
+        return self.shape("eyes_left", seconds=seconds)
+
+    def look_right(self, seconds: float | None = None):
+        return self.shape("eyes_right", seconds=seconds)
+
+    def look_up(self, seconds: float | None = None):
+        return self.shape("eyes_up", seconds=seconds)
+
+    def look_down(self, seconds: float | None = None):
+        return self.shape("eyes_down", seconds=seconds)
+
+    def wink(self, seconds: float | None = None):
+        return self.shape("wink", seconds=seconds)
+
+    def blink(self, seconds: float | None = None):
+        return self.shape("blink", seconds=seconds)
+
+    def sleep(self, seconds: float | None = None):
+        return self.shape("sleep", seconds=seconds)
+
+    def shut_eyes(self, seconds: float | None = None):
+        return self.shape("shut_eyes", seconds=seconds)
 
     def triangle(self, seconds: float | None = None):
         return self.shape("triangle", seconds=seconds)
