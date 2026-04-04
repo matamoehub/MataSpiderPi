@@ -730,6 +730,20 @@ class Display:
             result["dot_matrix_error"] = str(exc)
             return result
 
+    def _play_shapes(
+        self,
+        names: list[str],
+        frame_seconds: float = 0.18,
+        final_hold_seconds: float = 0.0,
+    ):
+        result = None
+        for index, name in enumerate(names):
+            hold = frame_seconds
+            if index == len(names) - 1 and final_hold_seconds > 0:
+                hold = final_hold_seconds
+            result = self.shape(name, seconds=hold)
+        return result
+
     def shape(self, name: str = "smile", seconds: float | None = None):
         key = str(name).strip().lower()
         if key not in _SHAPES:
@@ -770,16 +784,27 @@ class Display:
         return self.shape("eyes_down", seconds=seconds)
 
     def wink(self, seconds: float | None = None):
-        return self.shape("wink", seconds=seconds)
+        hold_s = _coerce_hold_seconds(seconds)
+        return self._play_shapes(["eyes", "wink", "eyes"], frame_seconds=0.16, final_hold_seconds=hold_s)
 
     def blink(self, seconds: float | None = None):
-        return self.shape("blink", seconds=seconds)
+        hold_s = _coerce_hold_seconds(seconds)
+        return self._play_shapes(["eyes", "blink", "eyes"], frame_seconds=0.12, final_hold_seconds=hold_s)
 
     def sleep(self, seconds: float | None = None):
-        return self.shape("sleep", seconds=seconds)
+        hold_s = _coerce_hold_seconds(seconds)
+        return self._play_shapes(["eyes", "blink", "shut_eyes", "sleep"], frame_seconds=0.16, final_hold_seconds=hold_s or 0.5)
 
     def shut_eyes(self, seconds: float | None = None):
         return self.shape("shut_eyes", seconds=seconds)
+
+    def wake_up(self, seconds: float | None = None):
+        hold_s = _coerce_hold_seconds(seconds)
+        return self._play_shapes(["sleep", "shut_eyes", "blink", "eyes"], frame_seconds=0.16, final_hold_seconds=hold_s or 0.4)
+
+    def sleepy_blink(self, seconds: float | None = None):
+        hold_s = _coerce_hold_seconds(seconds)
+        return self._play_shapes(["eyes", "blink", "shut_eyes", "blink", "eyes"], frame_seconds=0.14, final_hold_seconds=hold_s)
 
     def triangle(self, seconds: float | None = None):
         return self.shape("triangle", seconds=seconds)
