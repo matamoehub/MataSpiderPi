@@ -165,12 +165,12 @@ bot.lights.purple()
 bot.lights.off()
 ```
 
-## Sound And Speech
+## Sound And Display
 
 ```python
 bot.sound.beep(2200, 0.1)
 bot.sound.melody("C4:0.5 E4:0.5 G4:1", bpm=180)
-bot.speech.say("Hello from Spider Pi.")
+bot.display.text("Hello", "From SpiderPi", seconds=1.0)
 ```
 
 ## Vision
