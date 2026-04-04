@@ -218,6 +218,16 @@ _SHAPES = {
         "01011010",
         "10000001",
     ],
+    "spider_alt": [
+        "01000010",
+        "10011001",
+        "01111110",
+        "00111100",
+        "11111111",
+        "01111110",
+        "10011001",
+        "01000010",
+    ],
     "web": [
         "10000001",
         "01011010",
@@ -1167,6 +1177,17 @@ class Display:
     def sleepy_blink(self, seconds: float | None = None):
         hold_s = _coerce_hold_seconds(seconds)
         return self._play_shapes(["eyes", "blink", "shut_eyes", "blink", "eyes"], frame_seconds=0.14, final_hold_seconds=hold_s)
+
+    def spider(self, seconds: float | None = None):
+        hold_s = _coerce_hold_seconds(seconds)
+        return self._play_shapes(["spider", "spider_alt", "spider", "spider_alt", "spider"], frame_seconds=0.14, final_hold_seconds=hold_s or 0.4)
+
+    def spider_walk(self, seconds: float | None = None):
+        hold_s = _coerce_hold_seconds(seconds)
+        return self._play_shapes(["spider", "spider_alt", "web", "spider_alt", "spider"], frame_seconds=0.16, final_hold_seconds=hold_s or 0.5)
+
+    def web(self, seconds: float | None = None):
+        return self.shape("web", seconds=seconds)
 
     def triangle(self, seconds: float | None = None):
         return self.shape("triangle", seconds=seconds)
