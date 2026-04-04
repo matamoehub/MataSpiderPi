@@ -395,6 +395,15 @@ def _first_visible_text(lines) -> str:
     return ""
 
 
+def _visible_texts(lines) -> list[str]:
+    values: list[str] = []
+    for line in lines:
+        value = str(line or "").strip()
+        if value:
+            values.append(value)
+    return values
+
+
 class _MatrixDisplayCompat:
     digit_dict = {
         "0": 0x3F,
@@ -619,15 +628,18 @@ class Display:
     def text(self, line1: str = "", line2: str = "", line3: str = "", line4: str = "", seconds: float | None = None):
         lines = [line1, line2, line3, line4]
         echoed = self._console_echo(*lines)
-        visible = _first_visible_text(lines)
+        visible_items = _visible_texts(lines)
         matrix_result = None
-        if visible:
+        if visible_items:
             try:
-                print(f"[display] matrix text -> text={visible!r} seconds={seconds!r} via system-python")
-                matrix_result = _show_matrix_text(visible, seconds=seconds)
+                print(f"[display] matrix text -> texts={visible_items!r} seconds={seconds!r} via system-python")
+                sequence = []
+                for item in visible_items:
+                    sequence.append(_show_matrix_text(item, seconds=seconds))
+                matrix_result = {"sequence": sequence, "count": len(sequence)}
             except Exception as exc:
-                print(f"[display] matrix text fallback -> text={visible!r} error={exc}")
-                matrix_result = {"matrix_text_error": str(exc), "visible_text": visible}
+                print(f"[display] matrix text fallback -> texts={visible_items!r} error={exc}")
+                matrix_result = {"matrix_text_error": str(exc), "visible_texts": visible_items}
         try:
             for index, text in enumerate(lines, start=1):
                 self._oled_write(index, str(text)[:20])
