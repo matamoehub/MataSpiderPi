@@ -19,6 +19,44 @@ except Exception as exc:  # pragma: no cover
     _DOT_MATRIX_IMPORT_ERROR = exc
 
 
+_EYE_SLOTS = (1, 6, 11)
+
+
+def _plot_bits(rows: list[list[str]], row: int, start: int, bits: str) -> None:
+    if row < 0 or row >= len(rows):
+        return
+    for offset, bit in enumerate(bits):
+        col = start + offset
+        if 0 <= col < len(rows[row]):
+            rows[row][col] = bit
+
+
+def _build_eye_rows(
+    states: tuple[str, str, str],
+    horizontal_shift: int = 0,
+    vertical_shift: int = 0,
+) -> list[str]:
+    rows = [list("0" * 16) for _ in range(8)]
+    open_pattern = ("010", "111", "111", "111", "010")
+    closed_pattern = ("000", "000", "111", "000", "000")
+    sleep_pattern = ("100", "010", "001")
+    base_row = 1 + vertical_shift
+
+    for eye_index, state in enumerate(states):
+        start_col = _EYE_SLOTS[eye_index] + horizontal_shift
+        if state == "open":
+            for row_offset, bits in enumerate(open_pattern):
+                _plot_bits(rows, base_row + row_offset, start_col, bits)
+        elif state == "closed":
+            for row_offset, bits in enumerate(closed_pattern):
+                _plot_bits(rows, base_row + row_offset, start_col, bits)
+        elif state == "sleep":
+            for row_offset, bits in enumerate(sleep_pattern):
+                _plot_bits(rows, base_row + 1 + row_offset, start_col, bits)
+
+    return ["".join(row) for row in rows]
+
+
 _SHAPES = {
     "triangle": [
         "0000000010000000",
@@ -60,96 +98,21 @@ _SHAPES = {
         "01000010",
         "00111100",
     ],
-    "eyes": [
-        "0000000000000000",
-        "0011001100110011",
-        "0111011101110111",
-        "0111011101110111",
-        "0111011101110111",
-        "0011001100110011",
-        "0000000000000000",
-        "0000000000000000",
-    ],
-    "eyes_left": [
-        "0000000000000000",
-        "0110011001100110",
-        "1110111011101110",
-        "1110111011101110",
-        "1110111011101110",
-        "0110011001100110",
-        "0000000000000000",
-        "0000000000000000",
-    ],
-    "eyes_right": [
-        "0000000000000000",
-        "0001100110011001",
-        "0011101110111011",
-        "0011101110111011",
-        "0011101110111011",
-        "0001100110011001",
-        "0000000000000000",
-        "0000000000000000",
-    ],
-    "eyes_up": [
-        "0011001100110011",
-        "0111011101110111",
-        "0111011101110111",
-        "0011001100110011",
-        "0000000000000000",
-        "0000000000000000",
-        "0000000000000000",
-        "0000000000000000",
-    ],
-    "eyes_down": [
-        "0000000000000000",
-        "0000000000000000",
-        "0000000000000000",
-        "0000000000000000",
-        "0011001100110011",
-        "0111011101110111",
-        "0111011101110111",
-        "0011001100110011",
-    ],
-    "wink": [
-        "0000000000000000",
-        "0011001100000000",
-        "0111011101111111",
-        "0111011100000000",
-        "0111011101111111",
-        "0011001100000000",
-        "0000000000000000",
-        "0000000000000000",
-    ],
-    "blink": [
-        "0000000000000000",
-        "0000000000000000",
-        "1111111111111111",
-        "1111111111111111",
-        "0000000000000000",
-        "0000000000000000",
-        "0000000000000000",
-        "0000000000000000",
-    ],
-    "sleep": [
-        "1100000011000000",
-        "0110000001100000",
-        "0011000000110000",
-        "0001100000011000",
-        "0000110000001100",
-        "0000011000000110",
-        "0000001100000011",
-        "0000000000000000",
-    ],
-    "shut_eyes": [
-        "0000000000000000",
-        "0000000000000000",
-        "1111111111111111",
-        "0000000000000000",
-        "1111111111111111",
-        "0000000000000000",
-        "0000000000000000",
-        "0000000000000000",
-    ],
+    "eyes": _build_eye_rows(("open", "open", "open")),
+    "eyes_left": _build_eye_rows(("open", "open", "open"), horizontal_shift=-1),
+    "eyes_right": _build_eye_rows(("open", "open", "open"), horizontal_shift=1),
+    "eyes_up": _build_eye_rows(("open", "open", "open"), vertical_shift=-1),
+    "eyes_down": _build_eye_rows(("open", "open", "open"), vertical_shift=1),
+    "left_eye_closed": _build_eye_rows(("closed", "open", "open")),
+    "center_eye_closed": _build_eye_rows(("open", "closed", "open")),
+    "right_eye_closed": _build_eye_rows(("open", "open", "closed")),
+    "left_eye_open": _build_eye_rows(("open", "closed", "closed")),
+    "center_eye_open": _build_eye_rows(("closed", "open", "closed")),
+    "right_eye_open": _build_eye_rows(("closed", "closed", "open")),
+    "wink": _build_eye_rows(("closed", "open", "open")),
+    "blink": _build_eye_rows(("closed", "closed", "closed")),
+    "sleep": _build_eye_rows(("sleep", "sleep", "sleep")),
+    "shut_eyes": _build_eye_rows(("closed", "closed", "closed")),
     "test_left": [
         "1111111100000000",
         "1111111100000000",
@@ -783,9 +746,38 @@ class Display:
     def look_down(self, seconds: float | None = None):
         return self.shape("eyes_down", seconds=seconds)
 
-    def wink(self, seconds: float | None = None):
+    def left_wink(self, seconds: float | None = None):
         hold_s = _coerce_hold_seconds(seconds)
-        return self._play_shapes(["eyes", "wink", "eyes"], frame_seconds=0.16, final_hold_seconds=hold_s)
+        return self._play_shapes(["eyes", "left_eye_closed", "eyes"], frame_seconds=0.16, final_hold_seconds=hold_s)
+
+    def center_wink(self, seconds: float | None = None):
+        hold_s = _coerce_hold_seconds(seconds)
+        return self._play_shapes(["eyes", "center_eye_closed", "eyes"], frame_seconds=0.16, final_hold_seconds=hold_s)
+
+    def right_wink(self, seconds: float | None = None):
+        hold_s = _coerce_hold_seconds(seconds)
+        return self._play_shapes(["eyes", "right_eye_closed", "eyes"], frame_seconds=0.16, final_hold_seconds=hold_s)
+
+    def close_left_eye(self, seconds: float | None = None):
+        return self.shape("left_eye_closed", seconds=seconds)
+
+    def close_center_eye(self, seconds: float | None = None):
+        return self.shape("center_eye_closed", seconds=seconds)
+
+    def close_right_eye(self, seconds: float | None = None):
+        return self.shape("right_eye_closed", seconds=seconds)
+
+    def open_left_eye(self, seconds: float | None = None):
+        return self.shape("left_eye_open", seconds=seconds)
+
+    def open_center_eye(self, seconds: float | None = None):
+        return self.shape("center_eye_open", seconds=seconds)
+
+    def open_right_eye(self, seconds: float | None = None):
+        return self.shape("right_eye_open", seconds=seconds)
+
+    def wink(self, seconds: float | None = None):
+        return self.left_wink(seconds=seconds)
 
     def blink(self, seconds: float | None = None):
         hold_s = _coerce_hold_seconds(seconds)
