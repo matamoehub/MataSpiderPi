@@ -1,0 +1,592 @@
+{
+  "version": 1,
+  "sound_dir": "/opt/robot/sounds",
+  "description": "Named Rocky-style robot phrases. File paths are relative to /opt/robot/sounds unless absolute.",
+  "sounds": {
+    "rocky_intro": {
+      "file": "rocky_intro.wav",
+      "text": "I Rocky. Good good good.",
+      "category": "identity"
+    },
+    "rocky_name": {
+      "file": "rocky_name.wav",
+      "text": "Rocky I am.",
+      "category": "identity"
+    },
+    "rocky_here": {
+      "file": "rocky_here.wav",
+      "text": "Rocky here yes yes yes.",
+      "category": "identity"
+    },
+    "rocky_ready": {
+      "file": "rocky_ready.wav",
+      "text": "Ready yes yes yes.",
+      "category": "identity"
+    },
+    "rocky_awake": {
+      "file": "rocky_awake.wav",
+      "text": "Awake awake. Amaze amaze amaze.",
+      "category": "identity"
+    },
+    "rocky_understand": {
+      "file": "rocky_understand.wav",
+      "text": "Understand yes yes yes.",
+      "category": "identity"
+    },
+    "rocky_thank": {
+      "file": "rocky_thank.wav",
+      "text": "Thank.",
+      "category": "identity"
+    },
+    "rocky_question": {
+      "file": "rocky_question.wav",
+      "text": "Question.",
+      "category": "identity"
+    },
+    "rocky_amaze": {
+      "file": "rocky_amaze.wav",
+      "text": "Amaze amaze amaze.",
+      "category": "identity"
+    },
+    "rocky_good_good_good": {
+      "file": "rocky_good_good_good.wav",
+      "text": "Good good good.",
+      "category": "identity"
+    },
+    "rocky_fist_my_bump": {
+      "file": "rocky_fist_my_bump.wav",
+      "text": "Fist my bump.",
+      "category": "identity"
+    },
+    "rocky_celebration": {
+      "file": "rocky_celebration.wav",
+      "text": "Celebration. Amaze amaze amaze.",
+      "category": "identity"
+    },
+    "rocky_friend": {
+      "file": "rocky_friend.wav",
+      "text": "You friend now.",
+      "category": "identity"
+    },
+    "rocky_human_friend": {
+      "file": "rocky_human_friend.wav",
+      "text": "Human good. Friend.",
+      "category": "identity"
+    },
+    "rocky_happy": {
+      "file": "rocky_happy.wav",
+      "text": "Happy happy happy.",
+      "category": "emotion"
+    },
+    "rocky_sad": {
+      "file": "rocky_sad.wav",
+      "text": "Sad sad sad.",
+      "category": "emotion"
+    },
+    "rocky_bad": {
+      "file": "rocky_bad.wav",
+      "text": "Bad bad bad. Question.",
+      "category": "emotion"
+    },
+    "rocky_problem": {
+      "file": "rocky_problem.wav",
+      "text": "Problem. Fix need.",
+      "category": "status"
+    },
+    "rocky_danger": {
+      "file": "rocky_danger.wav",
+      "text": "Danger. Stop stop stop.",
+      "category": "status"
+    },
+    "rocky_wait": {
+      "file": "rocky_wait.wav",
+      "text": "Wait. Think think think.",
+      "category": "status"
+    },
+    "rocky_again_question": {
+      "file": "rocky_again_question.wav",
+      "text": "Again. Question.",
+      "category": "status"
+    },
+    "rocky_complete": {
+      "file": "rocky_complete.wav",
+      "text": "Complete. Good good good.",
+      "category": "status"
+    },
+    "rocky_success": {
+      "file": "rocky_success.wav",
+      "text": "Success. Amaze amaze amaze.",
+      "category": "status"
+    },
+    "rocky_sleep_good": {
+      "file": "rocky_sleep_good.wav",
+      "text": "Sleep good.",
+      "category": "status"
+    },
+    "rocky_observe_question": {
+      "file": "rocky_observe_question.wav",
+      "text": "You observe. Question.",
+      "category": "status"
+    },
+    "rocky_watch": {
+      "file": "rocky_watch.wav",
+      "text": "I watch. You sleep good.",
+      "category": "status"
+    },
+    "rocky_unusual": {
+      "file": "rocky_unusual.wav",
+      "text": "Human unusual.",
+      "category": "status"
+    },
+    "rocky_grumpy": {
+      "file": "rocky_grumpy.wav",
+      "text": "Grumpy. Angry. Stupid.",
+      "category": "emotion"
+    },
+    "rocky_sarcasm": {
+      "file": "rocky_sarcasm.wav",
+      "text": "Sarcasm.",
+      "category": "emotion"
+    },
+    "robot_camera_ready": {
+      "file": "robot_camera_ready.wav",
+      "text": "Camera ready yes yes yes.",
+      "category": "camera"
+    },
+    "robot_camera_check": {
+      "file": "robot_camera_check.wav",
+      "text": "Camera check now.",
+      "category": "camera"
+    },
+    "robot_camera_bad": {
+      "file": "robot_camera_bad.wav",
+      "text": "Camera bad. Problem.",
+      "category": "camera"
+    },
+    "robot_camera_question": {
+      "file": "robot_camera_question.wav",
+      "text": "Camera see. Question.",
+      "category": "camera"
+    },
+    "robot_snapshot": {
+      "file": "robot_snapshot.wav",
+      "text": "Picture take. Wait.",
+      "category": "camera"
+    },
+    "robot_face_found": {
+      "file": "robot_face_found.wav",
+      "text": "Face found. Good good good.",
+      "category": "camera"
+    },
+    "robot_face_question": {
+      "file": "robot_face_question.wav",
+      "text": "Face not found. Question.",
+      "category": "camera"
+    },
+    "robot_hand_found": {
+      "file": "robot_hand_found.wav",
+      "text": "Hand found. Amaze amaze amaze.",
+      "category": "camera"
+    },
+    "robot_hand_question": {
+      "file": "robot_hand_question.wav",
+      "text": "Hand not found. Question.",
+      "category": "camera"
+    },
+    "robot_color_found": {
+      "file": "robot_color_found.wav",
+      "text": "Color found. Good good good.",
+      "category": "camera"
+    },
+    "robot_color_question": {
+      "file": "robot_color_question.wav",
+      "text": "Color see. Question.",
+      "category": "camera"
+    },
+    "robot_battery_good": {
+      "file": "robot_battery_good.wav",
+      "text": "Battery good. Good good good.",
+      "category": "power"
+    },
+    "robot_battery_low": {
+      "file": "robot_battery_low.wav",
+      "text": "Battery low. Charge need.",
+      "category": "power"
+    },
+    "robot_battery_bad": {
+      "file": "robot_battery_bad.wav",
+      "text": "Battery bad. Stop stop stop.",
+      "category": "power"
+    },
+    "robot_battery_question": {
+      "file": "robot_battery_question.wav",
+      "text": "Battery state. Question.",
+      "category": "power"
+    },
+    "robot_power_ready": {
+      "file": "robot_power_ready.wav",
+      "text": "Power ready yes yes yes.",
+      "category": "power"
+    },
+    "robot_power_question": {
+      "file": "robot_power_question.wav",
+      "text": "Power state. Question.",
+      "category": "power"
+    },
+    "robot_move_ready": {
+      "file": "robot_move_ready.wav",
+      "text": "Move ready yes yes yes.",
+      "category": "movement"
+    },
+    "robot_forward": {
+      "file": "robot_forward.wav",
+      "text": "Forward move.",
+      "category": "movement"
+    },
+    "robot_backward": {
+      "file": "robot_backward.wav",
+      "text": "Backward move.",
+      "category": "movement"
+    },
+    "robot_left": {
+      "file": "robot_left.wav",
+      "text": "Left move.",
+      "category": "movement"
+    },
+    "robot_right": {
+      "file": "robot_right.wav",
+      "text": "Right move.",
+      "category": "movement"
+    },
+    "robot_turn_left": {
+      "file": "robot_turn_left.wav",
+      "text": "Left turn.",
+      "category": "movement"
+    },
+    "robot_turn_right": {
+      "file": "robot_turn_right.wav",
+      "text": "Right turn.",
+      "category": "movement"
+    },
+    "robot_stop": {
+      "file": "robot_stop.wav",
+      "text": "Stop stop stop.",
+      "category": "movement"
+    },
+    "robot_move_safe": {
+      "file": "robot_move_safe.wav",
+      "text": "Move safe. Good good good.",
+      "category": "movement"
+    },
+    "robot_move_question": {
+      "file": "robot_move_question.wav",
+      "text": "Move path. Question.",
+      "category": "movement"
+    },
+    "robot_arm_ready": {
+      "file": "robot_arm_ready.wav",
+      "text": "Arm ready yes yes yes.",
+      "category": "arm"
+    },
+    "robot_arm_home": {
+      "file": "robot_arm_home.wav",
+      "text": "Arm home.",
+      "category": "arm"
+    },
+    "robot_arm_up": {
+      "file": "robot_arm_up.wav",
+      "text": "Arm up.",
+      "category": "arm"
+    },
+    "robot_arm_down": {
+      "file": "robot_arm_down.wav",
+      "text": "Arm down.",
+      "category": "arm"
+    },
+    "robot_grip_open": {
+      "file": "robot_grip_open.wav",
+      "text": "Grip open.",
+      "category": "arm"
+    },
+    "robot_grip_close": {
+      "file": "robot_grip_close.wav",
+      "text": "Grip close.",
+      "category": "arm"
+    },
+    "robot_pick": {
+      "file": "robot_pick.wav",
+      "text": "Thing pick.",
+      "category": "arm"
+    },
+    "robot_place": {
+      "file": "robot_place.wav",
+      "text": "Thing place.",
+      "category": "arm"
+    },
+    "robot_hold": {
+      "file": "robot_hold.wav",
+      "text": "Hold good good good.",
+      "category": "arm"
+    },
+    "robot_arm_question": {
+      "file": "robot_arm_question.wav",
+      "text": "Arm position. Question.",
+      "category": "arm"
+    },
+    "robot_sensor_ready": {
+      "file": "robot_sensor_ready.wav",
+      "text": "Sensor ready yes yes yes.",
+      "category": "sensor"
+    },
+    "robot_sensor_question": {
+      "file": "robot_sensor_question.wav",
+      "text": "Sensor data. Question.",
+      "category": "sensor"
+    },
+    "robot_near": {
+      "file": "robot_near.wav",
+      "text": "Thing near. Stop.",
+      "category": "sensor"
+    },
+    "robot_clear": {
+      "file": "robot_clear.wav",
+      "text": "Path clear. Good good good.",
+      "category": "sensor"
+    },
+    "robot_sonar_ready": {
+      "file": "robot_sonar_ready.wav",
+      "text": "Sonar ready yes yes yes.",
+      "category": "sensor"
+    },
+    "robot_sonar_question": {
+      "file": "robot_sonar_question.wav",
+      "text": "Sonar see. Question.",
+      "category": "sensor"
+    },
+    "robot_lights_on": {
+      "file": "robot_lights_on.wav",
+      "text": "Lights on.",
+      "category": "lights"
+    },
+    "robot_lights_off": {
+      "file": "robot_lights_off.wav",
+      "text": "Lights off.",
+      "category": "lights"
+    },
+    "robot_eyes_ready": {
+      "file": "robot_eyes_ready.wav",
+      "text": "Eyes ready yes yes yes.",
+      "category": "display"
+    },
+    "robot_blink": {
+      "file": "robot_blink.wav",
+      "text": "Blink blink.",
+      "category": "display"
+    },
+    "robot_sleep": {
+      "file": "robot_sleep.wav",
+      "text": "Sleep good.",
+      "category": "display"
+    },
+    "robot_wake": {
+      "file": "robot_wake.wav",
+      "text": "Wake wake wake.",
+      "category": "display"
+    },
+    "robot_audio_ready": {
+      "file": "robot_audio_ready.wav",
+      "text": "Sound ready yes yes yes.",
+      "category": "audio"
+    },
+    "robot_audio_bad": {
+      "file": "robot_audio_bad.wav",
+      "text": "Sound bad. Problem.",
+      "category": "audio"
+    },
+    "robot_audio_question": {
+      "file": "robot_audio_question.wav",
+      "text": "Sound work. Question.",
+      "category": "audio"
+    },
+    "robot_display_ready": {
+      "file": "robot_display_ready.wav",
+      "text": "Display ready yes yes yes.",
+      "category": "display"
+    },
+    "robot_display_bad": {
+      "file": "robot_display_bad.wav",
+      "text": "Display bad. Problem.",
+      "category": "display"
+    },
+    "robot_display_question": {
+      "file": "robot_display_question.wav",
+      "text": "Display work. Question.",
+      "category": "display"
+    },
+    "eng_build_start": {
+      "file": "eng_build_start.wav",
+      "text": "Build start. Wait.",
+      "category": "engineering"
+    },
+    "eng_build_question": {
+      "file": "eng_build_question.wav",
+      "text": "Build broken. Question.",
+      "category": "engineering"
+    },
+    "eng_tests_run": {
+      "file": "eng_tests_run.wav",
+      "text": "Tests run. Wait wait.",
+      "category": "engineering"
+    },
+    "eng_tests_pass": {
+      "file": "eng_tests_pass.wav",
+      "text": "Tests pass. Good good good.",
+      "category": "engineering"
+    },
+    "eng_tests_fail": {
+      "file": "eng_tests_fail.wav",
+      "text": "Tests fail. Question.",
+      "category": "engineering"
+    },
+    "eng_bug_found": {
+      "file": "eng_bug_found.wav",
+      "text": "Bug found. Bad bad bad.",
+      "category": "engineering"
+    },
+    "eng_bug_question": {
+      "file": "eng_bug_question.wav",
+      "text": "Bug hide. Question.",
+      "category": "engineering"
+    },
+    "eng_fix_now": {
+      "file": "eng_fix_now.wav",
+      "text": "Fix now. Think think think.",
+      "category": "engineering"
+    },
+    "eng_fixed": {
+      "file": "eng_fixed.wav",
+      "text": "Fixed. Complete. Good good good.",
+      "category": "engineering"
+    },
+    "eng_commit_ready": {
+      "file": "eng_commit_ready.wav",
+      "text": "Commit ready yes yes yes.",
+      "category": "engineering"
+    },
+    "eng_push_now": {
+      "file": "eng_push_now.wav",
+      "text": "Push now.",
+      "category": "engineering"
+    },
+    "eng_deploy_start": {
+      "file": "eng_deploy_start.wav",
+      "text": "Deploy start. Watch.",
+      "category": "engineering"
+    },
+    "eng_rollback": {
+      "file": "eng_rollback.wav",
+      "text": "Rollback. Safe move.",
+      "category": "engineering"
+    },
+    "eng_logs": {
+      "file": "eng_logs.wav",
+      "text": "Logs say truth.",
+      "category": "engineering"
+    },
+    "eng_logs_question": {
+      "file": "eng_logs_question.wav",
+      "text": "Logs say. Question.",
+      "category": "engineering"
+    },
+    "eng_trace": {
+      "file": "eng_trace.wav",
+      "text": "Path trace. Cause find.",
+      "category": "engineering"
+    },
+    "eng_latency_bad": {
+      "file": "eng_latency_bad.wav",
+      "text": "Slow slow slow. Problem.",
+      "category": "engineering"
+    },
+    "eng_latency_question": {
+      "file": "eng_latency_question.wav",
+      "text": "Slow place. Question.",
+      "category": "engineering"
+    },
+    "eng_memory_bad": {
+      "file": "eng_memory_bad.wav",
+      "text": "Memory full. Bad bad.",
+      "category": "engineering"
+    },
+    "eng_memory_question": {
+      "file": "eng_memory_question.wav",
+      "text": "Memory leak. Question.",
+      "category": "engineering"
+    },
+    "eng_network_bad": {
+      "file": "eng_network_bad.wav",
+      "text": "Network unstable. Wait.",
+      "category": "engineering"
+    },
+    "eng_network_question": {
+      "file": "eng_network_question.wav",
+      "text": "Packet lost. Question.",
+      "category": "engineering"
+    },
+    "eng_review_done": {
+      "file": "eng_review_done.wav",
+      "text": "Review complete. Good good good.",
+      "category": "engineering"
+    },
+    "eng_ship": {
+      "file": "eng_ship.wav",
+      "text": "Ship. Amaze amaze amaze.",
+      "category": "engineering"
+    },
+    "game_ready": {
+      "file": "game_ready.wav",
+      "text": "Ready yes yes yes.",
+      "category": "game"
+    },
+    "game_go": {
+      "file": "game_go.wav",
+      "text": "Go go go.",
+      "category": "game"
+    },
+    "game_win": {
+      "file": "game_win.wav",
+      "text": "Win. Amaze amaze amaze.",
+      "category": "game"
+    },
+    "game_lose": {
+      "file": "game_lose.wav",
+      "text": "Lose. Bad bad. Again question.",
+      "category": "game"
+    },
+    "game_draw": {
+      "file": "game_draw.wav",
+      "text": "Same same. Again question.",
+      "category": "game"
+    },
+    "game_rock": {
+      "file": "game_rock.wav",
+      "text": "Rock.",
+      "category": "game"
+    },
+    "game_paper": {
+      "file": "game_paper.wav",
+      "text": "Paper.",
+      "category": "game"
+    },
+    "game_scissors": {
+      "file": "game_scissors.wav",
+      "text": "Scissors.",
+      "category": "game"
+    },
+    "game_human_move_question": {
+      "file": "game_human_move_question.wav",
+      "text": "Human move. Question.",
+      "category": "game"
+    }
+  }
+}

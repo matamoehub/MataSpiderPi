@@ -197,6 +197,18 @@ class Sound:
     def say(self, text: str, block: bool = True):
         return tts_lib.say(text, block=block)
 
+    def play(self, name: str, block: bool = True):
+        return tts_lib.play_sound(name, block=block)
+
+    def rocky(self, name: str, block: bool = True):
+        return self.play(name, block=block)
+
+    def sounds(self):
+        return tts_lib.available_sounds()
+
+    def sound_info(self, name: str):
+        return tts_lib.sound_info(name)
+
     def beep(self, freq: int = 2000, seconds: float = 0.2):
         return self._buzzer.beep(freq=freq, duration_s=seconds)
 
@@ -211,6 +223,12 @@ class Speech:
 
     def say(self, text: str, block: bool = True):
         return tts_lib.say(text, block=block)
+
+    def play(self, name: str, block: bool = True):
+        return tts_lib.play_sound(name, block=block)
+
+    def rocky(self, name: str, block: bool = True):
+        return self.play(name, block=block)
 
 
 class DistanceSensor:
@@ -278,6 +296,12 @@ class RobotV2:
     def beep(self, freq: int = 2000, seconds: float = 0.2):
         return self.sound.beep(freq=freq, seconds=seconds)
 
+    def play_sound(self, name: str, block: bool = True):
+        return self.sound.play(name, block=block)
+
+    def rocky(self, name: str, block: bool = True):
+        return self.sound.rocky(name, block=block)
+
     def stop(self):
         return self.body.stop()
 
@@ -286,8 +310,8 @@ class RobotV2:
             "body": ["forward", "backward", "left", "right", "turn_left", "turn_right", "stop", "dance", "wave", "attack", "kick", "twist"],
             "arm": ["home", "ready", "move", "look", "open", "half_open", "close", "set_grip", "turn_left", "turn_right", "center_turn", "lift", "lower", "grab_at", "pick", "carry", "place"],
             "vision": ["snapshot", "capture", "find_color", "show_color", "can_see", "count_color", "color_position", "detect_faces", "show_faces", "recognize_faces", "find_face", "recognize_hands", "show_hands", "detect_hands", "detect_pose", "show_pose", "recognize_pose", "find_tag", "find_shapes"],
-            "sound": ["say", "beep", "melody"],
-            "speech": ["say"],
+            "sound": ["say", "play", "rocky", "sounds", "sound_info", "beep", "melody"],
+            "speech": ["say", "play", "rocky"],
             "distance": ["cm", "mm", "is_close"],
             "lights": ["robot", "sonar", "all", "off", "red", "green", "blue", "yellow", "purple"],
             "display": ["text", "line", "number", "clear_matrix", "shape", "icon", "emoji", "icons", "rps", "eyes", "look_left", "look_right", "look_up", "look_down", "wink", "left_wink", "center_wink", "right_wink", "blink", "sleep", "shut_eyes", "wake_up", "sleepy_blink", "close_left_eye", "close_center_eye", "close_right_eye", "open_left_eye", "open_center_eye", "open_right_eye", "spider", "spider_walk", "web", "smile", "triangle", "square", "diamond"],

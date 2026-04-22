@@ -19,11 +19,14 @@ import hashlib
 import tempfile
 import wave
 import contextlib
+import json
 from typing import Optional
 
 # Allow override so it works no matter which user runs Jupyter/services
 VOICE_DIR = os.environ.get("PIPER_VOICE_DIR", os.path.expanduser("/opt/robot/piper/voices"))
 PIPER_BIN = os.environ.get("PIPER_BIN", "/opt/robot/piper/piper/piper")
+SOUND_DIR = os.environ.get("ROBOT_SOUND_DIR", "/opt/robot/sounds")
+SOUND_MANIFEST = os.environ.get("ROBOT_SOUND_MANIFEST", os.path.join(SOUND_DIR, "rocky_sounds.json"))
 
 VOICE_MAP = {
     "ryan": ("en_US-ryan-high.onnx", "en_US-ryan-high.onnx.json"),
@@ -205,6 +208,70 @@ def play_wav_async(path: str, device: Optional[str] = None):
 
 def play_path_async(path: str, device: Optional[str] = None):
     return play_wav_async(path, device=device)
+
+
+def load_sound_manifest(path: Optional[str] = None) -> dict:
+    """
+    Load the named robot sound manifest.
+
+    Expected shape:
+      {"sounds": {"rocky_intro": {"file": "rocky_intro.wav", "text": "..."}}}
+    """
+    manifest_path = path or SOUND_MANIFEST
+    if not os.path.isfile(manifest_path):
+        return {"sounds": {}}
+    with open(manifest_path, "r", encoding="utf-8") as f:
+        data = json.load(f)
+    sounds = data.get("sounds", {})
+    if not isinstance(sounds, dict):
+        raise RuntimeError(f"Invalid sound manifest: {manifest_path}")
+    return data
+
+
+def available_sounds(path: Optional[str] = None) -> list[str]:
+    return sorted(load_sound_manifest(path).get("sounds", {}).keys())
+
+
+def sound_info(name: str, path: Optional[str] = None) -> dict:
+    key = str(name).strip()
+    sounds = load_sound_manifest(path).get("sounds", {})
+    info = sounds.get(key)
+    if isinstance(info, str):
+        info = {"file": info}
+    if info is None:
+        # Useful during bring-up: bot.sound.play("rocky_intro") can still map
+        # to /opt/robot/sounds/rocky_intro.wav before the manifest is copied.
+        info = {"file": f"{key}.wav"}
+    if not isinstance(info, dict) or not info.get("file"):
+        raise RuntimeError(f"Invalid sound entry for '{key}'")
+    return dict(info)
+
+
+def sound_path(name: str, path: Optional[str] = None) -> str:
+    info = sound_info(name, path=path)
+    file_name = str(info["file"])
+    if os.path.isabs(file_name):
+        return file_name
+    sound_dir = load_sound_manifest(path).get("sound_dir") or SOUND_DIR
+    return os.path.join(sound_dir, file_name)
+
+
+def play_sound(
+    name: str,
+    device: Optional[str] = None,
+    block: bool = True,
+    manifest: Optional[str] = None,
+) -> str:
+    wav_path = sound_path(name, path=manifest)
+    if not os.path.isfile(wav_path):
+        raise FileNotFoundError(
+            f"Robot sound '{name}' not found: {wav_path}\n"
+            f"Generate/copy sounds into {SOUND_DIR} and copy the manifest to {SOUND_MANIFEST}."
+        )
+    p = play_path_async(wav_path, device=device)
+    if block:
+        p.wait()
+    return wav_path
 
 
 def warm_piper(voice: Optional[str] = None):
