@@ -2,11 +2,14 @@
 from __future__ import annotations
 
 import importlib
+import logging
 import os
 import sys
 from functools import lru_cache
 from pathlib import Path
 from typing import Any
+
+_log = logging.getLogger(__name__)
 
 
 def repo_root() -> Path:
@@ -86,8 +89,11 @@ def get_board() -> Any:
     ensure_vendor_paths()
     try:
         from common.ros_robot_controller_sdk import Board
-        return Board()
-    except Exception:
+        board = Board()
+        _log.debug("spiderpi_support: Board initialised")
+        return board
+    except Exception as e:
+        _log.warning("spiderpi_support: could not initialise Board: %s", e)
         return None
 
 
@@ -99,8 +105,11 @@ def get_action_controller() -> Any:
         return None
     try:
         from common.action_group_controller import ActionGroupController
-        return ActionGroupController(board, action_path=str(resolve_vendor_root()))
-    except Exception:
+        ctrl = ActionGroupController(board, action_path=str(resolve_vendor_root()))
+        _log.debug("spiderpi_support: ActionGroupController initialised")
+        return ctrl
+    except Exception as e:
+        _log.warning("spiderpi_support: could not initialise ActionGroupController: %s", e)
         return None
 
 
@@ -109,8 +118,11 @@ def get_arm_ik() -> Any:
     ensure_vendor_paths()
     try:
         from arm_ik.arm_move_ik import ArmIK
-        return ArmIK()
-    except Exception:
+        ik = ArmIK()
+        _log.debug("spiderpi_support: ArmIK initialised")
+        return ik
+    except Exception as e:
+        _log.warning("spiderpi_support: could not initialise ArmIK: %s", e)
         return None
 
 

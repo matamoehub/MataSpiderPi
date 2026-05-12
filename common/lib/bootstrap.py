@@ -2,11 +2,63 @@
 # Keeps notebooks clean: fixes broken cwd, finds repo root, adds sys.path,
 # and cleans up ROS env (bad CycloneDDS URI).
 
+from __future__ import annotations
+
 from pathlib import Path
 import os
 import sys
 
+__version__ = "1.1"
+
 BROKEN_CYCLONE_URI = "file:///etc/cyclonedds/config.xml"
+
+_SESSION_CANDIDATES = [
+    Path(os.environ.get("STUDENT_SESSION_PATH", "/opt/robot/lessons/state/student_session.json")),
+    Path("/opt/robot/lessons/state/student_session.json"),
+    Path("/opt/robot/students/state/student_session.json"),
+]
+
+
+def _student_session_exists() -> bool:
+    seen: set[str] = set()
+    for p in _SESSION_CANDIDATES:
+        key = str(p)
+        if key in seen:
+            continue
+        seen.add(key)
+        try:
+            if p.exists():
+                return True
+        except Exception:
+            pass
+    return False
+
+
+def _missing_lib_error(lib_path: Path) -> RuntimeError:
+    if _student_session_exists():
+        msg = (
+            "\n"
+            "  Robot library files not found — the lesson bundle has not been applied yet.\n"
+            "\n"
+            "  You are logged in, but your lesson may still be loading.\n"
+            "  Please wait a moment then restart the notebook kernel and try again.\n"
+            "\n"
+            f"  (Expected library at: {lib_path})"
+        )
+    else:
+        msg = (
+            "\n"
+            "  Robot library files not found — please log in first.\n"
+            "\n"
+            "  To use this notebook:\n"
+            "  1. Open the robot web page (your teacher will give you the address)\n"
+            "  2. Enter your name and class code to log in\n"
+            "  3. Return to this notebook and restart the kernel\n"
+            "\n"
+            f"  (Expected library at: {lib_path})"
+        )
+    return RuntimeError(msg)
+
 
 def safe_start_dir() -> Path:
     try:
@@ -17,15 +69,35 @@ def safe_start_dir() -> Path:
             return Path(home).resolve()
         return Path("/tmp").resolve()
 
+
 def find_repo_root(start: Path) -> Path:
     p = start.resolve()
     for _ in range(25):
-        if (p / "lessons").is_dir():
+        if (p / "lessons").is_dir() and (p / "common").is_dir():
             return p
         if p.parent == p:
             break
         p = p.parent
     raise FileNotFoundError(f"Could not find repo root from start={start}")
+
+
+def candidate_roots(start: Path) -> list[Path]:
+    candidates = [start, Path(__file__).resolve().parents[2]]
+    env_root = str(os.environ.get("MATA_REPO_ROOT", "")).strip()
+    if env_root:
+        candidates.append(Path(env_root).expanduser())
+    candidates.extend([
+        Path("/opt/robot/MataSpiderPi"),
+    ])
+    seen: set[str] = set()
+    unique: list[Path] = []
+    for candidate in candidates:
+        key = str(candidate.resolve(strict=False))
+        if key in seen:
+            continue
+        seen.add(key)
+        unique.append(candidate)
+    return unique
 
 
 def _existing_lessons_lib() -> Path | None:
@@ -47,13 +119,12 @@ def resolve_common_lib(root: Path) -> Path:
             candidates.append(Path(value).expanduser())
 
     candidates.extend([
+        Path("/opt/robot/students/lessons_cache/common/lib"),
         root / "common" / "lib",
         Path("/opt/robot/common/lib"),
-        Path("/opt/robot/students/lessons_cache/common/lib"),
-        Path("/opt/robot/students/lesson_cache/common/lib"),
     ])
 
-    seen = set()
+    seen: set[str] = set()
     for candidate in candidates:
         key = str(candidate.resolve(strict=False))
         if key in seen:
@@ -70,22 +141,17 @@ def resolve_lessons_lib(root: Path) -> Path:
     if value:
         candidates.append(Path(value).expanduser())
 
-    workspace_lessons_lib = root / "lessons" / "lib"
-    if workspace_lessons_lib.exists() and workspace_lessons_lib.is_dir():
-        candidates.append(workspace_lessons_lib)
+    candidates.extend([
+        root / "lessons" / "lib",
+        Path("/opt/robot/students/lessons_cache/lessons/lib"),
+        Path("/opt/robot/lessons/lib"),
+    ])
 
     existing = _existing_lessons_lib()
     if existing is not None:
-        candidates.append(existing)
+        candidates.insert(0, existing)
 
-    candidates.extend([
-        Path("/opt/robot/students/lessons_cache/lessons/lib"),
-        Path("/opt/robot/students/lesson_cache/lessons/lib"),
-        Path("/opt/robot/lessons/lib"),
-        workspace_lessons_lib,
-    ])
-
-    seen = set()
+    seen: set[str] = set()
     for candidate in candidates:
         key = str(candidate.resolve(strict=False))
         if key in seen:
@@ -95,16 +161,29 @@ def resolve_lessons_lib(root: Path) -> Path:
             return candidate
     return candidates[-1]
 
+
 def setup_paths() -> dict:
     start = safe_start_dir()
-    root = find_repo_root(start)
+    root = None
+    for candidate in candidate_roots(start):
+        try:
+            root = find_repo_root(candidate)
+            break
+        except FileNotFoundError:
+            continue
+    if root is None:
+        raise FileNotFoundError(
+            f"Could not find MataSpiderPi repo root from {start} or known robot locations"
+        )
+
     common_lib = resolve_common_lib(root)
     lessons_lib = resolve_lessons_lib(root)
+    sim_enabled = str(os.environ.get("MATA_BACKEND", "")).strip().lower() == "sim" or os.environ.get("MATA_SIM", "").strip() == "1"
+
+    if not sim_enabled and not common_lib.exists():
+        raise _missing_lib_error(common_lib)
+
     sim_shims = root / "simulator" / "shims"
-
-    mode = str(os.environ.get("MATA_BACKEND", "")).strip().lower()
-    sim_enabled = mode == "sim" or os.environ.get("MATA_SIM", "").strip() == "1"
-
     sim_shims_s = str(sim_shims)
     sys.path[:] = [p for p in sys.path if p != sim_shims_s]
 
@@ -142,8 +221,8 @@ def setup_paths() -> dict:
         "SIM_SHIMS": str(sim_shims),
     }
 
+
 def setup_ros_env(default_domain: str = "0") -> dict:
-    # Remove the known-bad CycloneDDS config
     if os.environ.get("CYCLONEDDS_URI") == BROKEN_CYCLONE_URI:
         os.environ.pop("CYCLONEDDS_URI", None)
 
@@ -156,11 +235,30 @@ def setup_ros_env(default_domain: str = "0") -> dict:
         "CYCLONEDDS_URI": os.environ.get("CYCLONEDDS_URI"),
     }
 
+
+def setup_camera_fallback() -> dict:
+    """Let notebooks that call cv2.VideoCapture(0) use the robot_ops vision API
+    when direct V4L2 capture is unavailable."""
+    if str(os.environ.get("MATA_BACKEND", "")).strip().lower() == "sim":
+        return {"OPS_WEB_CAMERA_FALLBACK": False}
+    try:
+        import vision_lib
+
+        installed = bool(vision_lib.install_opencv_capture_fallback())
+        return {"OPS_WEB_CAMERA_FALLBACK": installed}
+    except Exception as e:
+        return {
+            "OPS_WEB_CAMERA_FALLBACK": False,
+            "OPS_WEB_CAMERA_FALLBACK_ERROR": str(e),
+        }
+
+
 def bootstrap(default_domain: str = "0", verbose: bool = True) -> dict:
     paths = setup_paths()
     env = setup_ros_env(default_domain=default_domain)
+    camera = setup_camera_fallback()
 
-    info = {**paths, **env}
+    info = {**paths, **env, **camera}
     if verbose:
         print("START:", info["START"])
         print("Repo root:", info["ROOT"])
@@ -172,4 +270,5 @@ def bootstrap(default_domain: str = "0", verbose: bool = True) -> dict:
         print("ROS_DOMAIN_ID =", info["ROS_DOMAIN_ID"])
         print("RMW_IMPLEMENTATION =", info["RMW_IMPLEMENTATION"])
         print("CYCLONEDDS_URI =", info["CYCLONEDDS_URI"])
+        print("OPS_WEB_CAMERA_FALLBACK =", info.get("OPS_WEB_CAMERA_FALLBACK"))
     return info

@@ -1,2 +1,3 @@
-# common/lib/__init__.py
+"""MataSpiderPi shared lesson library."""
+__version__ = "1.1"
 
