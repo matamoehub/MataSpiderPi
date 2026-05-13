@@ -19,6 +19,8 @@ Then use the robot through one clear API:
     bot.distance.cm()
 """
 
+__version__ = "1.0.0"
+
 import robot_moves as robot_moves_module
 from action_group_lib import get_actions
 from arm_lib import get_arm

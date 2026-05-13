@@ -8,7 +8,7 @@ from pathlib import Path
 import os
 import sys
 
-__version__ = "1.1"
+__version__ = "1.2"
 
 BROKEN_CYCLONE_URI = "file:///etc/cyclonedds/config.xml"
 
