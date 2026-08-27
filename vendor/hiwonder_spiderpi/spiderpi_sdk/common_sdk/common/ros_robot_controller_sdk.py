@@ -108,11 +108,19 @@ class Board:
         self.port.rts = False
         self.port.dtr = False
         self.port.setPort(device)
+        # exclusive=True uses flock() on POSIX so a second process trying to
+        # open the same serial device fails loudly (SerialException) instead
+        # of silently succeeding and corrupting the shared command bus.
+        self.port.exclusive = True
         self.port.open()
 
         self.state = PacketControllerState.PACKET_CONTROLLER_STATE_STARTBYTE1
         self.servo_read_lock = threading.Lock()
         self.pwm_servo_read_lock = threading.Lock()
+        # Guards every self.port.write() call so concurrent threads (e.g. a
+        # voice/LLM handler running alongside a notebook cell) can't
+        # interleave writes and corrupt an AA-55 framed packet.
+        self.write_lock = threading.Lock()
         
         self.sys_queue = queue.Queue(maxsize=1)
         self.bus_servo_queue = queue.Queue(maxsize=1)
@@ -318,7 +326,8 @@ class Board:
         buf.append(len(data))
         buf.extend(data)
         buf.append(checksum_crc8(bytes(buf[2:])))
-        self.port.write(buf)
+        with self.write_lock:
+            self.port.write(buf)
 
     def set_led(self, on_time, off_time, repeat=1, led_id=1):
         on_time = int(on_time*1000)

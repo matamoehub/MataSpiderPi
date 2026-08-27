@@ -7,7 +7,7 @@ import os
 import subprocess
 import time
 
-from spiderpi_support import ensure_vendor_paths, get_board
+from spiderpi_support import board_unavailable_reason, ensure_vendor_paths, get_board
 
 ensure_vendor_paths()
 
@@ -908,7 +908,7 @@ class Display:
 
     def _require_board(self):
         if self._board is None:
-            raise RuntimeError("SpiderPi OLED display is unavailable")
+            raise RuntimeError(board_unavailable_reason("SpiderPi OLED display is unavailable"))
         return self._board
 
     def _oled_write(self, line: int, text: str):

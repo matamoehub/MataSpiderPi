@@ -4,7 +4,7 @@ from __future__ import annotations
 import time
 from typing import List, Optional, Tuple
 
-from spiderpi_support import get_board
+from spiderpi_support import board_unavailable_reason, get_board
 
 DEFAULT_BPM = 120
 DEFAULT_FREQ = 2400
@@ -58,7 +58,7 @@ class Buzzer:
 
     def _require_board(self):
         if self._board is None:
-            raise RuntimeError("SpiderPi buzzer control unavailable")
+            raise RuntimeError(board_unavailable_reason("SpiderPi buzzer control unavailable"))
         return self._board
 
     def beep(self, freq: int = DEFAULT_FREQ, duration_s: float = 0.2, gap_s: float = POST_NOTE_GAP_S, note: str | None = None) -> None:

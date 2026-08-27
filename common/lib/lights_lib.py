@@ -1,7 +1,11 @@
 #!/usr/bin/env python3
 from __future__ import annotations
 
-from spiderpi_support import ensure_vendor_paths, get_board
+import logging
+
+from spiderpi_support import board_unavailable_reason, ensure_vendor_paths, get_board
+
+_log = logging.getLogger(__name__)
 
 ensure_vendor_paths()
 
@@ -26,14 +30,20 @@ class Lights:
 
     def __init__(self):
         self._board = get_board()
-        self._ultrasonic = Ultrasonic() if Ultrasonic is not None else None
+        self._ultrasonic = None
+        if Ultrasonic is not None:
+            try:
+                self._ultrasonic = Ultrasonic()
+            except Exception as exc:
+                _log.warning("lights_lib: could not initialise Ultrasonic: %s", exc)
+                self._ultrasonic = None
 
     def _rgb(self, r: int, g: int, b: int) -> tuple[int, int, int]:
         return (_clamp(r), _clamp(g), _clamp(b))
 
     def robot(self, r: int, g: int, b: int):
         if self._board is None:
-            raise RuntimeError("SpiderPi board RGB control unavailable")
+            raise RuntimeError(board_unavailable_reason("SpiderPi board RGB control unavailable"))
         r, g, b = self._rgb(r, g, b)
         self._board.set_rgb([[1, r, g, b], [2, r, g, b]])
         return {"target": "robot", "rgb": [r, g, b]}

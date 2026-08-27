@@ -84,15 +84,50 @@ def module_available(name: str) -> bool:
         return False
 
 
+_board_error: Exception | None = None
+
+
+def get_board_error() -> Exception | None:
+    """Return the exception raised by the last failed get_board() attempt.
+
+    None means the board is either not yet initialised or initialised fine.
+    Callers that got a None board back from get_board() can use this to
+    build a clearer message than the generic "unavailable" string, e.g.
+    distinguishing "another process already has the serial port open" from
+    other init failures.
+    """
+    return _board_error
+
+
+def board_unavailable_reason(default: str = "SpiderPi board unavailable") -> str:
+    """Human-readable reason the board is unavailable, for error messages."""
+    exc = _board_error
+    if exc is None:
+        return default
+    message = str(exc)
+    lowered = message.lower()
+    if isinstance(exc, PermissionError) or "could not exclusively lock" in lowered or (
+        "exclusive" in lowered and "lock" in lowered
+    ):
+        return (
+            f"{default}: robot already in use by another process "
+            f"(serial port could not be locked: {message})"
+        )
+    return f"{default}: {message}"
+
+
 @lru_cache(maxsize=1)
 def get_board() -> Any:
+    global _board_error
     ensure_vendor_paths()
     try:
         from common.ros_robot_controller_sdk import Board
         board = Board()
         _log.debug("spiderpi_support: Board initialised")
+        _board_error = None
         return board
     except Exception as e:
+        _board_error = e
         _log.warning("spiderpi_support: could not initialise Board: %s", e)
         return None
 

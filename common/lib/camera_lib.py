@@ -4,7 +4,7 @@ from __future__ import annotations
 import time
 from typing import Optional
 
-from spiderpi_support import get_board
+from spiderpi_support import board_unavailable_reason, get_board
 from arm_lib import LOOK, get_arm
 
 HEAD_PITCH = 0
@@ -43,7 +43,7 @@ class Camera:
 
     def _require_board(self):
         if self._board is None:
-            raise RuntimeError("SpiderPi board unavailable")
+            raise RuntimeError(board_unavailable_reason())
         return self._board
 
     def _move_head(self, x: float, y: float, z: float, seconds: float = HEAD_DEFAULT_SECONDS, pitch: float = HEAD_PITCH):

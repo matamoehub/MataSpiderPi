@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 from __future__ import annotations
 
-from spiderpi_support import get_arm_ik, get_board
+from spiderpi_support import board_unavailable_reason, get_arm_ik, get_board
 
 GRIPPER_OPEN = 120
 GRIPPER_MID = 360
@@ -34,12 +34,12 @@ class Arm:
 
     def _set_gripper(self, pulse: int, movetime_ms: int = 500):
         if self._board is None:
-            raise RuntimeError('SpiderPi board unavailable')
+            raise RuntimeError(board_unavailable_reason())
         self._board.bus_servo_set_position(float(movetime_ms) / 1000.0, [[25, int(pulse)]])
 
     def _set_bus_servo(self, servo_id: int, pulse: int, movetime_ms: int = 500):
         if self._board is None:
-            raise RuntimeError('SpiderPi board unavailable')
+            raise RuntimeError(board_unavailable_reason())
         self._board.bus_servo_set_position(float(movetime_ms) / 1000.0, [[int(servo_id), int(pulse)]])
 
     def open_gripper(self):
