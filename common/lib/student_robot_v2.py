@@ -191,6 +191,15 @@ class Vision:
     def find_shapes(self):
         return self._vision.find_shapes()
 
+    def detect_objects(self, confidence: float = 0.5, show: bool = True):
+        return self._vision.detect_objects(confidence=confidence, show=show)
+
+    def find_object(self, name: str, confidence: float = 0.5, show: bool = True):
+        return self._vision.find_object(name, confidence=confidence, show=show)
+
+    def object_classes(self):
+        return self._vision.object_classes()
+
 
 class Sound:
     def __init__(self):

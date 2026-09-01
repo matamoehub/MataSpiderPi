@@ -224,11 +224,16 @@ Student-facing methods include:
 - `recognize_pose`
 - `find_tag`
 - `find_shapes`
+- `detect_objects` — detect every object in frame via YOLO26 nano
+- `find_object` — find a specific object by class name via YOLO26 nano
+- `object_classes` — list all 80 COCO object classes YOLO26n can detect
 
 Important behavior:
 
 - face detection uses the real MediaPipe-backed path
 - hand gesture detection uses the real hand recognition path
+- object detection uses YOLO26 nano (`yolo26n.pt`), pre-installed at
+  `/opt/robot/models/yolo26n.pt`; students never choose or download a model
 - unplugged camera situations return a friendly result dictionary instead of crashing the notebook
 
 ### `bot.sound` and `bot.speech`

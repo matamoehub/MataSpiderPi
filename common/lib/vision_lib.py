@@ -11,8 +11,9 @@ singleton-safe library that can:
 - run MediaPipe hand analysis for gesture-based lessons
 - display the annotated image inline in Jupyter
 - calibrate colour HSV ranges from the notebook
+- run YOLO26 nano object detection
 """
-__version__ = "1.1.0"
+__version__ = "1.2.0"
 
 import copy
 import os
@@ -23,6 +24,17 @@ from typing import Any, Dict, List, Optional, Sequence, Tuple
 
 from ros_service_client import clear_process_singleton, get_process_singleton, set_process_singleton
 from spiderpi_support import ensure_vendor_paths
+
+# YOLO model — yolo26n nano, pre-installed on the robot at a fixed path.
+# Students never need to choose or specify a model.
+# Override with YOLO_MODEL env var for advanced use.
+_YOLO_MODEL_NAME = "yolo26n.pt"
+_YOLO_MODEL_SEARCH_PATHS = [
+    Path("/opt/robot/models/yolo26n.pt"),          # pre-installed by ops
+    Path(__file__).resolve().parent.parent / "models" / "yolo26n.pt",  # repo copy
+    Path.home() / ".config" / "Ultralytics" / "yolo26n.pt",  # ultralytics cache
+]
+_DEFAULT_YOLO_MODEL = os.environ.get("YOLO_MODEL", _YOLO_MODEL_NAME)
 
 
 HSVRange = Tuple[Tuple[int, int, int], Tuple[int, int, int]]
@@ -185,6 +197,7 @@ class Vision:
         self.warmup_s = float(warmup_s)
         self.min_area = int(min_area)
         self._profiles: Dict[str, List[HSVRange]] = copy.deepcopy(DEFAULT_COLOR_PROFILES)
+        self._yolo_model: Optional[Any] = None  # loaded YOLO model (lazy)
 
     def set_color_profile(
         self,
@@ -641,6 +654,112 @@ class Vision:
             min_tracking_confidence=min_tracking_confidence,
         )
 
+    # ── YOLO object detection ─────────────────────────────────────────────────
+
+    def _ensure_yolo(self) -> Any:
+        """Load YOLO26 nano model lazily.
+
+        Checks pre-installed paths first (/opt/robot/models/yolo26n.pt),
+        then falls back to ultralytics auto-download.
+        Students never need to specify a model — it is always yolo26n.
+        """
+        if self._yolo_model is not None:
+            return self._yolo_model
+        # ultralytics imports matplotlib.pyplot on load which triggers the
+        # Jupyter inline backend and crashes with a version mismatch:
+        #   AttributeError: 'RcParams' object has no attribute '_get'
+        # Force a non-interactive backend before the import to avoid this.
+        try:
+            import matplotlib
+            matplotlib.use("Agg")
+        except Exception:
+            pass
+        try:
+            from ultralytics import YOLO  # type: ignore
+        except ImportError:
+            raise RuntimeError(
+                "YOLO requires the ultralytics package. "
+                "Ask ops to run: pip install ultralytics"
+            )
+        # Use pre-installed model file if available — avoids internet dependency
+        for p in _YOLO_MODEL_SEARCH_PATHS:
+            if p.exists():
+                self._yolo_model = YOLO(str(p))
+                print(f"[vision_lib] YOLO26 nano loaded from {p}")
+                return self._yolo_model
+        # Not pre-installed — download (requires internet, first run only)
+        print(f"[vision_lib] downloading {_YOLO_MODEL_NAME} (first use only)...")
+        self._yolo_model = YOLO(_YOLO_MODEL_NAME)
+        print("[vision_lib] YOLO26 nano ready")
+        return self._yolo_model
+
+    def detect_objects_yolo(
+        self,
+        conf: float = 0.5,
+        show: bool = True,
+        save_path: Optional[str] = None,
+        classes: Optional[List[int]] = None,
+    ) -> Dict[str, Any]:
+        """Run YOLO26 nano object detection on a captured frame.
+
+        Always uses the pre-installed yolo26n model — students do not
+        need to choose or download a model.
+
+        Args:
+            conf:      Confidence threshold 0-1. Lower = more detections.
+            show:      Display annotated frame in Jupyter.
+            save_path: Optional path to save annotated image.
+            classes:   Filter to specific COCO class IDs (None = all).
+                       e.g. classes=[32] for sports ball only.
+
+        Returns dict with:
+            found       bool
+            count       int
+            objects     list of {label, confidence, x, y, w, h, cx, cy}
+            path        saved image path or None
+        """
+        cv2, _np = _require_runtime()
+        yolo = self._ensure_yolo()
+        frame = self.capture_frame()
+
+        results = yolo(frame, conf=conf, classes=classes, verbose=False)
+
+        objects = []
+        annotated = frame.copy()
+        for result in results:
+            # Use YOLO's built-in plot() for professional annotated frame
+            # (per-class colours, background labels, proper styling)
+            annotated = result.plot()
+            for box in result.boxes:
+                x1, y1, x2, y2 = (int(v) for v in box.xyxy[0])
+                w, h = x2 - x1, y2 - y1
+                objects.append({
+                    "label": result.names[int(box.cls[0])],
+                    "confidence": float(box.conf[0]),
+                    "x": x1, "y": y1, "w": w, "h": h,
+                    "cx": x1 + w // 2, "cy": y1 + h // 2,
+                })
+
+        path = None
+        if show:
+            info = self.show_image(annotated, save_path=save_path,
+                                   title=f"YOLO: {len(objects)} objects detected")
+            path = info["path"]
+        elif save_path:
+            path = self._write_image(annotated, save_path=save_path)
+
+        return {
+            "found": bool(objects),
+            "count": len(objects),
+            "objects": objects,
+            "path": path,
+        }
+
+    def yolo_class_names(self) -> List[str]:
+        """Return all 80 COCO class names YOLO26n can detect."""
+        model = self._ensure_yolo()
+        return list(model.names.values())
+
 
 def get_vision(
     camera_index: Optional[int] = None,
@@ -715,3 +834,11 @@ def recognize_hands(*args, **kwargs):
 
 def show_hands(*args, **kwargs):
     return get_vision().show_hands(*args, **kwargs)
+
+
+def detect_objects_yolo(*args, **kwargs):
+    return get_vision().detect_objects_yolo(*args, **kwargs)
+
+
+def yolo_class_names():
+    return get_vision().yolo_class_names()

@@ -160,6 +160,50 @@ class SpiderVision:
     def show_hands(self, show: bool = True) -> dict[str, Any]:
         return self.recognize_hands(show=show)
 
+    def detect_objects(self, confidence: float = 0.5, show: bool = True) -> dict[str, Any]:
+        base = _require_base()
+        try:
+            raw = base.detect_objects_yolo(conf=confidence, show=show)
+        except RuntimeError as exc:
+            result = _camera_error_result("object_detection", exc, show=show)
+            result["engine"] = "yolo26n"
+            result["found"] = False
+            result["count"] = 0
+            result["objects"] = []
+            result["path"] = None
+            return result
+        return {
+            "ok": True,
+            "activity": "object_detection",
+            "engine": "yolo26n",
+            "show": bool(show),
+            "found": bool(raw.get("found")),
+            "count": int(raw.get("count", 0)),
+            "objects": list(raw.get("objects") or []),
+            "path": raw.get("path"),
+            "message": "Object detection uses YOLO26 nano and can display an annotated frame.",
+        }
+
+    def find_object(self, name: str, confidence: float = 0.5, show: bool = True) -> dict[str, Any]:
+        result = self.detect_objects(confidence=confidence, show=show)
+        target = str(name).strip().lower()
+        matches = [obj for obj in result.get("objects", []) if str(obj.get("label", "")).lower() == target]
+        best = max(matches, key=lambda obj: obj.get("confidence", 0.0)) if matches else None
+        return {
+            **result,
+            "activity": "find_object",
+            "name": target,
+            "found": bool(best),
+            "match": best,
+        }
+
+    def object_classes(self) -> list[str]:
+        base = _require_base()
+        try:
+            return base.yolo_class_names()
+        except RuntimeError:
+            return []
+
     def detect_pose(self, show: bool = True) -> dict[str, Any]:
         return {
             "ok": False,

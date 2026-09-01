@@ -8,3 +8,4 @@ pillow
 matplotlib
 smbus2
 gpiod<2
+ultralytics
