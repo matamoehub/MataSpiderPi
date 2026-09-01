@@ -11,11 +11,14 @@ singleton-safe library that can:
 - run MediaPipe hand analysis for gesture-based lessons
 - display the annotated image inline in Jupyter
 - calibrate colour HSV ranges from the notebook
+- undistort frames and report angular offset / lateral cm using the
+  vendored SpiderPi camera calibration
 - run YOLO26 nano object detection
 """
-__version__ = "1.2.0"
+__version__ = "1.3.0"
 
 import copy
+import math
 import os
 import tempfile
 import time
@@ -35,6 +38,24 @@ _YOLO_MODEL_SEARCH_PATHS = [
     Path.home() / ".config" / "Ultralytics" / "yolo26n.pt",  # ultralytics cache
 ]
 _DEFAULT_YOLO_MODEL = os.environ.get("YOLO_MODEL", _YOLO_MODEL_NAME)
+
+# Camera calibration search paths (checked in order). The repo copy is the
+# Hiwonder-vendored SpiderPi intrinsics (vendor/hiwonder_spiderpi/spiderpi_sdk/
+# camera_calibration_sdk/calibration/calibration_param.npz), copied in as-is.
+_CALIBRATION_SEARCH_PATHS = [
+    Path("/opt/robot/calibration/camera_calibration.npz"),
+    Path(__file__).resolve().parent.parent / "calibration" / "camera_calibration.npz",  # repo copy
+    Path.home() / "camera_calibration.npz",
+]
+
+# The vendored calibration_param.npz stores only mtx_array/dist_array — no
+# frame size. CollectCalibrationPicture.py opens the camera with
+# cv2.VideoCapture(-1) and never sets an explicit resolution, so the
+# calibration images were captured at the camera driver's default, which for
+# this camera/SDK generation is 640x480. This constant records that
+# assumption; load_calibration() scales the intrinsics to whatever
+# resolution frames are actually captured at.
+_CALIBRATION_NATIVE_SIZE = (640, 480)
 
 
 HSVRange = Tuple[Tuple[int, int, int], Tuple[int, int, int]]
@@ -182,6 +203,30 @@ def _classify_hand_gesture(landmarks, handedness: str) -> Tuple[str, Dict[str, b
     return "unknown", fingers
 
 
+def _classify_pose(landmarks) -> str:
+    left_shoulder = landmarks[11]
+    right_shoulder = landmarks[12]
+    left_wrist = landmarks[15]
+    right_wrist = landmarks[16]
+    left_elbow = landmarks[13]
+    right_elbow = landmarks[14]
+    nose = landmarks[0]
+
+    wrists_above_shoulders = left_wrist.y < left_shoulder.y and right_wrist.y < right_shoulder.y
+    wrists_out_wide = abs(left_wrist.y - left_shoulder.y) < 0.10 and abs(right_wrist.y - right_shoulder.y) < 0.10
+    elbows_out_wide = abs(left_elbow.y - left_shoulder.y) < 0.12 and abs(right_elbow.y - right_shoulder.y) < 0.12
+
+    if wrists_above_shoulders:
+        return "hands_up"
+    if wrists_out_wide and elbows_out_wide:
+        return "t_pose"
+    if left_wrist.y < nose.y and right_wrist.y >= right_shoulder.y:
+        return "left_hand_up"
+    if right_wrist.y < nose.y and left_wrist.y >= left_shoulder.y:
+        return "right_hand_up"
+    return "neutral"
+
+
 class Vision:
     def __init__(
         self,
@@ -198,6 +243,10 @@ class Vision:
         self.min_area = int(min_area)
         self._profiles: Dict[str, List[HSVRange]] = copy.deepcopy(DEFAULT_COLOR_PROFILES)
         self._yolo_model: Optional[Any] = None  # loaded YOLO model (lazy)
+        self._cal_K: Optional[Any] = None      # camera matrix, scaled to self.width/self.height
+        self._cal_D: Optional[Any] = None      # distortion coefficients
+        self._cal_map1: Optional[Any] = None   # precomputed undistort map1
+        self._cal_map2: Optional[Any] = None   # precomputed undistort map2
 
     def set_color_profile(
         self,
@@ -287,6 +336,10 @@ class Vision:
             raise RuntimeError(f"Failed to write image to {target}")
         return str(target)
 
+    def save_image(self, frame_bgr, save_path: Optional[str] = None) -> str:
+        """Write a frame to disk without displaying it. Returns the saved path."""
+        return self._write_image(frame_bgr, save_path=save_path)
+
     def show_image(self, frame_bgr, save_path: Optional[str] = None, title: Optional[str] = None) -> Dict[str, Any]:
         cv2, _np = _require_runtime()
         ok, encoded = cv2.imencode(".png", frame_bgr)
@@ -339,6 +392,7 @@ class Vision:
         threshold = int(self.min_area if min_area is None else min_area)
         objects = []
         annotated = frame.copy()
+        frame_h, frame_w = frame.shape[:2]
 
         for contour in contours:
             area = float(cv2.contourArea(contour))
@@ -394,6 +448,9 @@ class Vision:
             "objects": objects,
             "path": path,
             "ranges": ranges,
+            "width": int(frame_w),
+            "height": int(frame_h),
+            "center_x": int(frame_w // 2),
         }
 
     def show_color(self, color: str, show: bool = True, save_path: Optional[str] = None, min_area: Optional[int] = None) -> Dict[str, Any]:
@@ -478,6 +535,285 @@ class Vision:
         }
         print(result)
         return result
+
+    # ── Camera calibration ────────────────────────────────────────────────────
+
+    def load_calibration(self, path: Optional[str] = None) -> bool:
+        """Load camera calibration from an npz file (camera_calibration.npz).
+
+        Searches default paths if path is not given:
+          /opt/robot/calibration/camera_calibration.npz
+          common/calibration/camera_calibration.npz  (repo — vendored SpiderPi
+          intrinsics, copied from vendor/hiwonder_spiderpi/spiderpi_sdk/
+          camera_calibration_sdk/calibration/calibration_param.npz)
+          ~/camera_calibration.npz
+
+        The vendored file stores mtx_array/dist_array only (no frame size),
+        calibrated at the camera's default driver resolution
+        (_CALIBRATION_NATIVE_SIZE). The intrinsics are scaled here to match
+        self.width/self.height so angle/distance math stays correct even
+        though this class captures at 320x240 by default.
+
+        Returns True if calibration was loaded successfully.
+        """
+        cv2, np = _require_runtime()
+        candidates = [Path(path)] if path else _CALIBRATION_SEARCH_PATHS
+        for p in candidates:
+            if not p.exists():
+                continue
+            try:
+                data = np.load(str(p))
+                K = data["mtx_array"] if "mtx_array" in data.files else data["k_array"]
+                D = (data["dist_array"] if "dist_array" in data.files else data["d_array"]).flatten()
+                if "dim_array" in data.files:
+                    native_w, native_h = (int(v) for v in data["dim_array"])
+                else:
+                    native_w, native_h = _CALIBRATION_NATIVE_SIZE
+
+                scale_x = self.width / float(native_w)
+                scale_y = self.height / float(native_h)
+                K = K.copy()
+                K[0, 0] *= scale_x  # fx
+                K[1, 1] *= scale_y  # fy
+                K[0, 2] *= scale_x  # cx
+                K[1, 2] *= scale_y  # cy
+
+                w, h = self.width, self.height
+                new_K, _ = cv2.getOptimalNewCameraMatrix(K, D, (w, h), 1, (w, h))
+                map1, map2 = cv2.initUndistortRectifyMap(
+                    K, D, None, new_K, (w, h), cv2.CV_16SC2
+                )
+                self._cal_K   = new_K
+                self._cal_D   = D
+                self._cal_map1 = map1
+                self._cal_map2 = map2
+                print(f"[vision_lib] calibration loaded: {p.name}  "
+                      f"fx={new_K[0,0]:.1f} fy={new_K[1,1]:.1f} "
+                      f"cx={new_K[0,2]:.1f} cy={new_K[1,2]:.1f}  "
+                      f"(scaled from {native_w}x{native_h} to {w}x{h})")
+                return True
+            except Exception as e:
+                print(f"[vision_lib] calibration load failed ({p}): {e}")
+        print("[vision_lib] no calibration file found — angular offset will use frame-centre estimate")
+        return False
+
+    def _ensure_calibration(self) -> bool:
+        """Load calibration from default paths if not already loaded."""
+        if self._cal_K is not None:
+            return True
+        return self.load_calibration()
+
+    def undistort_frame(self, frame: Any) -> Any:
+        """Undistort a frame using the loaded camera calibration.
+
+        Loads calibration automatically from default paths if needed.
+        Returns the original frame unchanged if calibration is unavailable.
+        """
+        if not self._ensure_calibration():
+            return frame
+        cv2, _np = _require_runtime()
+        return cv2.remap(frame, self._cal_map1, self._cal_map2, cv2.INTER_LINEAR)
+
+    def pixel_to_angle(self, pixel_x: float, pixel_y: Optional[float] = None) -> Dict[str, float]:
+        """Convert pixel coordinates to angular offset from camera centre.
+
+        Uses camera calibration when available, otherwise falls back to a
+        reasonable estimate based on frame size.
+
+        Returns {"angle_x_deg": float, "angle_y_deg": float}
+          Positive angle_x = object is to the RIGHT of centre.
+          Positive angle_y = object is BELOW centre.
+        """
+        if self._ensure_calibration() and self._cal_K is not None:
+            fx = float(self._cal_K[0, 0])
+            fy = float(self._cal_K[1, 1])
+            cx = float(self._cal_K[0, 2])
+            cy = float(self._cal_K[1, 2])
+        else:
+            # Fallback: assume ~60° FOV for a typical USB webcam.
+            fx = fy = self.width / (2 * math.tan(math.radians(30)))
+            cx = self.width / 2.0
+            cy = self.height / 2.0
+
+        angle_x = math.degrees(math.atan2(float(pixel_x) - cx, fx))
+        angle_y = math.degrees(math.atan2(float(pixel_y) - cy, fy)) if pixel_y is not None else 0.0
+        return {"angle_x_deg": round(angle_x, 2), "angle_y_deg": round(angle_y, 2)}
+
+    def estimate_lateral_cm(
+        self,
+        pixel_cx: float,
+        pixel_width: float,
+        object_diameter_cm: float = 6.5,
+    ) -> Optional[float]:
+        """Estimate lateral distance (cm) of an object from camera centre.
+
+        Uses the known real-world diameter of the object and its pixel width to
+        estimate depth, then converts the pixel offset to cm.
+
+        pixel_cx         — object centre x in the frame
+        pixel_width      — object bounding-box width in pixels
+        object_diameter_cm — real diameter in cm (default 6.5 cm for a standard football)
+
+        Returns lateral cm (positive = right, negative = left), or None if
+        calibration is unavailable or pixel_width is zero.
+        """
+        if pixel_width <= 0:
+            return None
+        if not self._ensure_calibration() or self._cal_K is None:
+            return None
+        fx = float(self._cal_K[0, 0])
+        cx = float(self._cal_K[0, 2])
+        # Depth from apparent size: Z = fx * D_real / D_pixels
+        depth_cm = fx * float(object_diameter_cm) / float(pixel_width)
+        # Lateral distance: X = (px - cx) / fx * Z
+        lateral_cm = (float(pixel_cx) - cx) / fx * depth_cm
+        return round(lateral_cm, 1)
+
+    def target_position(
+        self,
+        color: str,
+        target_x: Optional[int] = None,
+        deadzone: int = 50,
+        show: bool = True,
+        min_area: Optional[int] = None,
+    ) -> Dict[str, Any]:
+        """Find the largest colour object and return its direction from centre.
+
+        For angular offset and lateral cm use locate_object() instead.
+
+        Returns: found, direction ("left"|"center"|"right"|"lost"),
+                 error (pixels from centre), target_x, deadzone, object, result.
+        """
+        result = self.find_color_objects(color=color, show=show, min_area=min_area)
+        objects = result["objects"]
+        centre_x = int(result["center_x"] if target_x is None else target_x)
+        threshold = abs(int(deadzone))
+
+        if not objects:
+            return {
+                "color":     result["color"],
+                "found":     False,
+                "direction": "lost",
+                "error":     None,
+                "target_x":  centre_x,
+                "deadzone":  threshold,
+                "object":    None,
+                "result":    result,
+            }
+
+        target = max(objects, key=lambda item: item["area"])
+        error = int(target["cx"] - centre_x)
+        if abs(error) <= threshold:
+            direction = "center"
+        elif error < 0:
+            direction = "left"
+        else:
+            direction = "right"
+
+        return {
+            "color":     result["color"],
+            "found":     True,
+            "direction": direction,
+            "error":     error,
+            "target_x":  centre_x,
+            "deadzone":  threshold,
+            "object":    target,
+            "result":    result,
+        }
+
+    def locate_object(
+        self,
+        color: str,
+        target_x: Optional[int] = None,
+        deadzone: int = 50,
+        show: bool = True,
+        min_area: Optional[int] = None,
+        object_diameter_cm: Optional[float] = None,
+    ) -> Dict[str, Any]:
+        """Find the largest colour object with real-world position data.
+
+        Enhanced version of target_position() — adds angular offset and
+        optional lateral distance. Uses camera calibration automatically.
+
+        Args:
+            color:               Colour name to detect ("red", "green", "blue").
+            deadzone:            Pixel half-width of the "center" zone.
+            object_diameter_cm:  Real diameter of the object in cm.
+                                 If given, lateral_cm is estimated from
+                                 the object's pixel width + calibration.
+                                 e.g. 6.5 for a standard football.
+
+        Returns:
+            direction     "left" | "center" | "right" | "lost"  (same as target_position)
+            found         bool
+            error         pixel offset from centre (+ = right, - = left)
+            error_norm    normalised -1.0..1.0 (resolution-independent, no depth needed)
+            angle_x_deg   lateral angle in degrees — positive = right of centre
+                          Uses calibration when loaded; falls back to FOV estimate.
+            lateral_cm    lateral distance in cm — only if object_diameter_cm given
+                          AND calibration is loaded; otherwise None.
+            object        largest detected object dict (x, y, w, h, cx, cy, area)
+        """
+        result = self.find_color_objects(color=color, show=show, min_area=min_area)
+        objects = result["objects"]
+        centre_x = int(result["center_x"] if target_x is None else target_x)
+        threshold = abs(int(deadzone))
+
+        if not objects:
+            return {
+                "color":       result["color"],
+                "found":       False,
+                "direction":   "lost",
+                "error":       None,
+                "error_norm":  None,
+                "angle_x_deg": None,
+                "lateral_cm":  None,
+                "target_x":    centre_x,
+                "deadzone":    threshold,
+                "object":      None,
+                "result":      result,
+            }
+
+        target = max(objects, key=lambda item: item["area"])
+        error = int(target["cx"] - centre_x)
+
+        # Normalised: -1.0 (far left) to +1.0 (far right)
+        frame_w = result.get("width", self.width) or self.width
+        error_norm = round(error / max(1, frame_w / 2), 3)
+
+        # Angular offset — uses calibration if available
+        angles = self.pixel_to_angle(target["cx"], target["cy"])
+        angle_x_deg = angles["angle_x_deg"]
+
+        # Lateral cm — only when real object size is known
+        lateral_cm: Optional[float] = None
+        if object_diameter_cm is not None:
+            lateral_cm = self.estimate_lateral_cm(
+                target["cx"],
+                target.get("w", 0),
+                object_diameter_cm,
+            )
+
+        if abs(error) <= threshold:
+            direction = "center"
+        elif error < 0:
+            direction = "left"
+        else:
+            direction = "right"
+
+        return {
+            "color":       result["color"],
+            "found":       True,
+            "direction":   direction,
+            "error":       error,
+            "error_norm":  error_norm,
+            "angle_x_deg": angle_x_deg,
+            "lateral_cm":  lateral_cm,
+            "target_x":    centre_x,
+            "deadzone":    threshold,
+            "object":      target,
+            "result":      result,
+        }
 
     def recognize_hands(
         self,
@@ -650,6 +986,104 @@ class Vision:
             show=show,
             save_path=save_path,
             max_hands=max_hands,
+            min_detection_confidence=min_detection_confidence,
+            min_tracking_confidence=min_tracking_confidence,
+        )
+
+    def detect_pose(
+        self,
+        show: bool = True,
+        save_path: Optional[str] = None,
+        min_detection_confidence: float = 0.5,
+        min_tracking_confidence: float = 0.5,
+    ) -> Dict[str, Any]:
+        cv2, _np = _require_runtime()
+        mp = _require_mediapipe_runtime()
+        frame_bgr, frame_rgb = self._capture_rgb_frame()
+        annotated = frame_bgr.copy()
+
+        with mp.solutions.pose.Pose(
+            static_image_mode=True,
+            min_detection_confidence=float(min_detection_confidence),
+            min_tracking_confidence=float(min_tracking_confidence),
+        ) as detector:
+            result = detector.process(frame_rgb)
+
+        pose_landmarks = getattr(result, "pose_landmarks", None)
+        pose = {
+            "found": bool(pose_landmarks),
+            "label": "none",
+            "landmarks": {},
+        }
+        if pose_landmarks is not None:
+            mp.solutions.drawing_utils.draw_landmarks(
+                annotated,
+                pose_landmarks,
+                mp.solutions.pose.POSE_CONNECTIONS,
+            )
+            key_names = {
+                "nose": 0,
+                "left_shoulder": 11,
+                "right_shoulder": 12,
+                "left_elbow": 13,
+                "right_elbow": 14,
+                "left_wrist": 15,
+                "right_wrist": 16,
+                "left_hip": 23,
+                "right_hip": 24,
+            }
+            for name, idx in key_names.items():
+                point = pose_landmarks.landmark[idx]
+                pose["landmarks"][name] = {
+                    "x": float(point.x),
+                    "y": float(point.y),
+                    "z": float(point.z),
+                    "visibility": float(point.visibility),
+                }
+            pose["label"] = _classify_pose(pose_landmarks.landmark)
+            cv2.putText(
+                annotated,
+                f"pose: {pose['label']}",
+                (10, 24),
+                cv2.FONT_HERSHEY_SIMPLEX,
+                0.65,
+                (0, 255, 255),
+                2,
+            )
+
+        path = None
+        if show:
+            info = self.show_image(annotated, save_path=save_path, title=f"Pose: {pose['label']}")
+            path = info["path"]
+        elif save_path:
+            path = self._write_image(annotated, save_path=save_path)
+        pose["path"] = path
+        return pose
+
+    def show_pose(
+        self,
+        show: bool = True,
+        save_path: Optional[str] = None,
+        min_detection_confidence: float = 0.5,
+        min_tracking_confidence: float = 0.5,
+    ):
+        return self.detect_pose(
+            show=show,
+            save_path=save_path,
+            min_detection_confidence=min_detection_confidence,
+            min_tracking_confidence=min_tracking_confidence,
+        )
+
+    def recognize_pose(
+        self,
+        show: bool = True,
+        save_path: Optional[str] = None,
+        min_detection_confidence: float = 0.5,
+        min_tracking_confidence: float = 0.5,
+    ):
+        return self.detect_pose(
+            show=show,
+            save_path=save_path,
             min_detection_confidence=min_detection_confidence,
             min_tracking_confidence=min_tracking_confidence,
         )
@@ -842,3 +1276,43 @@ def detect_objects_yolo(*args, **kwargs):
 
 def yolo_class_names():
     return get_vision().yolo_class_names()
+
+
+def detect_pose(*args, **kwargs):
+    return get_vision().detect_pose(*args, **kwargs)
+
+
+def show_pose(*args, **kwargs):
+    return get_vision().show_pose(*args, **kwargs)
+
+
+def recognize_pose(*args, **kwargs):
+    return get_vision().recognize_pose(*args, **kwargs)
+
+
+def load_calibration(*args, **kwargs):
+    return get_vision().load_calibration(*args, **kwargs)
+
+
+def undistort_frame(*args, **kwargs):
+    return get_vision().undistort_frame(*args, **kwargs)
+
+
+def pixel_to_angle(*args, **kwargs):
+    return get_vision().pixel_to_angle(*args, **kwargs)
+
+
+def estimate_lateral_cm(*args, **kwargs):
+    return get_vision().estimate_lateral_cm(*args, **kwargs)
+
+
+def target_position(*args, **kwargs):
+    return get_vision().target_position(*args, **kwargs)
+
+
+def locate_object(*args, **kwargs):
+    return get_vision().locate_object(*args, **kwargs)
+
+
+def save_image(*args, **kwargs):
+    return get_vision().save_image(*args, **kwargs)

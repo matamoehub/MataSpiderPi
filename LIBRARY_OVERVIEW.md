@@ -202,6 +202,7 @@ Vision is wrapped through:
 
 - [common/lib/spider_vision_lib.py](common/lib/spider_vision_lib.py)
 - [common/lib/vision_lib.py](common/lib/vision_lib.py)
+- [common/lib/qrcode_lib.py](common/lib/qrcode_lib.py)
 
 Student-facing methods include:
 
@@ -212,6 +213,16 @@ Student-facing methods include:
 - `can_see`
 - `count_color`
 - `color_position`
+- `biggest_color`
+- `target_position` — direction ("left"/"center"/"right"/"lost") of the
+  largest colour object from frame centre, with a pixel deadzone
+- `locate_object` — like `target_position` but adds `angle_x_deg` and
+  (with `object_diameter_cm`) `lateral_cm`, using the camera calibration
+- `calibrate_color` — sample HSV from the centre of the frame and persist it
+  as a colour profile
+- `which_object` — left-to-right index of the largest matching colour object
+- `move_towards_color` — step sideways to centre a colour, optionally walk
+  forward once centred (needs `bot.body`, wired in automatically)
 - `detect_faces`
 - `show_faces`
 - `recognize_faces`
@@ -219,21 +230,43 @@ Student-facing methods include:
 - `recognize_hands`
 - `show_hands`
 - `detect_hands`
-- `detect_pose`
+- `detect_pose` — full-body MediaPipe Pose; classifies `hands_up`, `t_pose`,
+  `left_hand_up`, `right_hand_up`, `neutral`, same as MataTurboPi
 - `show_pose`
 - `recognize_pose`
-- `find_tag`
-- `find_shapes`
 - `detect_objects` — detect every object in frame via YOLO26 nano
 - `find_object` — find a specific object by class name via YOLO26 nano
 - `object_classes` — list all 80 COCO object classes YOLO26n can detect
+- `read_qr_codes` — decode every QR code visible in frame (OpenCV
+  `QRCodeDetector`, real text/URL payloads — not AprilTags)
+- `find_qr_code` — return the first decoded QR code, or `None`
+- `find_tag` — AprilTag recognition; still a stub (see below)
+- `find_shapes`
 
 Important behavior:
 
 - face detection uses the real MediaPipe-backed path
 - hand gesture detection uses the real hand recognition path
+- pose detection uses the real MediaPipe Pose-backed path (ported from
+  MataTurboPi — pure MediaPipe, no robot-specific dependency)
 - object detection uses YOLO26 nano (`yolo26n.pt`), pre-installed at
   `/opt/robot/models/yolo26n.pt`; students never choose or download a model
+- QR code reading uses OpenCV's built-in `QRCodeDetector` — no ROS2 service
+  and no compiled native library needed
+- camera calibration is real: `common/calibration/camera_calibration.npz` is
+  the vendored Hiwonder intrinsics (copied from
+  `vendor/hiwonder_spiderpi/spiderpi_sdk/camera_calibration_sdk/calibration/
+  calibration_param.npz`), which stores `mtx_array`/`dist_array` only (no
+  frame size). `vision_lib.load_calibration()` assumes it was captured at
+  640x480 (the camera driver's default — `CollectCalibrationPicture.py`
+  never sets an explicit resolution) and scales the intrinsics to whatever
+  resolution frames are actually captured at (320x240 by default). This
+  scaling is an approximation, not a re-calibration at the live resolution —
+  good enough for angle/direction lessons, not for precision measurement.
+- `find_tag` (AprilTag) is still a stub: the vendored `apriltag.py` wrapper
+  (`vendor/hiwonder_spiderpi/spiderpi_sdk/common_sdk/common/apriltag.py`)
+  needs a compiled `libapriltag.so` that isn't shipped in this repo, so
+  wiring it up is a separate, larger task than the QR code library above
 - unplugged camera situations return a friendly result dictionary instead of crashing the notebook
 
 ### `bot.sound` and `bot.speech`

@@ -131,8 +131,9 @@ class Arm:
 
 
 class Vision:
-    def __init__(self):
+    def __init__(self, body: "Body | None" = None):
         self._vision = get_spider_vision()
+        self._body = body
 
     def snapshot(self, show: bool = True):
         return self._vision.snapshot(show=show)
@@ -188,6 +189,12 @@ class Vision:
     def find_tag(self):
         return self._vision.find_tag()
 
+    def read_qr_codes(self, show: bool = True):
+        return self._vision.read_qr_codes(show=show)
+
+    def find_qr_code(self, show: bool = True):
+        return self._vision.find_qr_code(show=show)
+
     def find_shapes(self):
         return self._vision.find_shapes()
 
@@ -199,6 +206,60 @@ class Vision:
 
     def object_classes(self):
         return self._vision.object_classes()
+
+    def target_position(self, color: str = "red", target_x: int | None = None,
+                         deadzone: int = 50, show: bool = False, min_area: int | None = None):
+        return self._vision.target_position(color=color, target_x=target_x, deadzone=deadzone,
+                                            show=show, min_area=min_area)
+
+    def locate_object(self, color: str = "red", target_x: int | None = None,
+                       deadzone: int = 50, show: bool = False, min_area: int | None = None,
+                       object_diameter_cm: float | None = None):
+        return self._vision.locate_object(color=color, target_x=target_x, deadzone=deadzone,
+                                          show=show, min_area=min_area,
+                                          object_diameter_cm=object_diameter_cm)
+
+    def calibrate_color(self, color: str, box_size: int = 80, show: bool = True,
+                         save_path: str | None = None, persist: bool = True):
+        return self._vision.calibrate_color(color=color, box_size=box_size, show=show,
+                                            save_path=save_path, persist=persist)
+
+    def which_object(self, color: str = "red", show: bool = True, min_area: int | None = None) -> int:
+        return self._vision.which_object(color=color, show=show, min_area=min_area)
+
+    def move_towards_color(
+        self,
+        color: str = "red",
+        sideways_seconds: float = 0.6,
+        deadzone: int = 50,
+        target_x: int | None = None,
+        show: bool = False,
+        min_area: int | None = None,
+        push_seconds: float | None = None,
+    ):
+        """Step sideways to centre a colour; optionally walk forward once centred."""
+        decision = self.target_position(color=color, target_x=target_x, deadzone=deadzone,
+                                        show=show, min_area=min_area)
+        direction = decision["direction"]
+        decision["moved"] = None
+
+        if self._body is None:
+            return decision
+
+        if direction == "left":
+            self._body.left(seconds=sideways_seconds)
+            self._body.stop()
+            decision["moved"] = "left"
+        elif direction == "right":
+            self._body.right(seconds=sideways_seconds)
+            self._body.stop()
+            decision["moved"] = "right"
+        elif direction == "center" and push_seconds is not None:
+            self._body.forward(seconds=float(push_seconds))
+            self._body.stop()
+            decision["moved"] = "forward"
+
+        return decision
 
 
 class Sound:
@@ -286,7 +347,7 @@ class RobotV2:
     def __init__(self):
         self.body = Body()
         self.arm = Arm()
-        self.vision = Vision()
+        self.vision = Vision(body=self.body)
         self.sound = Sound()
         self.speech = Speech()
         self.distance = DistanceSensor()
@@ -320,7 +381,7 @@ class RobotV2:
         return {
             "body": ["forward", "backward", "left", "right", "turn_left", "turn_right", "stop", "dance", "wave", "attack", "kick", "twist"],
             "arm": ["home", "ready", "move", "look", "open", "half_open", "close", "set_grip", "turn_left", "turn_right", "center_turn", "lift", "lower", "grab_at", "pick", "carry", "place"],
-            "vision": ["snapshot", "capture", "find_color", "show_color", "can_see", "count_color", "color_position", "detect_faces", "show_faces", "recognize_faces", "find_face", "recognize_hands", "show_hands", "detect_hands", "detect_pose", "show_pose", "recognize_pose", "find_tag", "find_shapes"],
+            "vision": ["snapshot", "capture", "find_color", "show_color", "can_see", "count_color", "color_position", "biggest_color", "target_position", "locate_object", "calibrate_color", "which_object", "move_towards_color", "detect_faces", "show_faces", "recognize_faces", "find_face", "recognize_hands", "show_hands", "detect_hands", "detect_pose", "show_pose", "recognize_pose", "detect_objects", "find_object", "object_classes", "read_qr_codes", "find_qr_code", "find_tag", "find_shapes"],
             "sound": ["say", "play", "rocky", "sounds", "sound_info", "beep", "melody"],
             "speech": ["say", "play", "rocky"],
             "distance": ["cm", "mm", "is_close"],
