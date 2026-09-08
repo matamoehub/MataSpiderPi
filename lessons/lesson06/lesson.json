@@ -3,6 +3,11 @@
   "title": "Lesson 6 - Tracking and Tags",
   "description": "Track targets, inspect AprilTags, and respond to what the camera sees.",
   "summary": "Track targets, inspect AprilTags, and respond to what the camera sees.",
+  "tags": [
+    "Tracking",
+    "Navigation"
+  ],
+  "has_demo": false,
   "levels": [
     {
       "id": "level_1",

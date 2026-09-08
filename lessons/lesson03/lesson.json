@@ -3,6 +3,10 @@
   "title": "Lesson 3 - Action Groups",
   "description": "Use prebuilt motion sequences like wave, dance, attack, and kick.",
   "summary": "Use prebuilt motion sequences like wave, dance, attack, and kick.",
+  "tags": [
+    "Robot control"
+  ],
+  "has_demo": false,
   "levels": [
     {
       "id": "level_1",

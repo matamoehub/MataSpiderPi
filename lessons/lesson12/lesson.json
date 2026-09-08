@@ -3,6 +3,12 @@
   "title": "Lesson 12 - Creative Mission",
   "description": "Design a mission using movement, arm, and vision together.",
   "summary": "Design a mission using movement, arm, and vision together.",
+  "tags": [
+    "Robot control",
+    "Arm & gripper",
+    "Colour detection"
+  ],
+  "has_demo": false,
   "levels": [
     {
       "id": "level_1",

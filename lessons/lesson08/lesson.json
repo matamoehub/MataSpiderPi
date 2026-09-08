@@ -3,6 +3,10 @@
   "title": "Lesson 8 - Obstacle Avoidance",
   "description": "Read sonar and avoid obstacles safely.",
   "summary": "Read sonar and avoid obstacles safely.",
+  "tags": [
+    "Navigation"
+  ],
+  "has_demo": false,
   "levels": [
     {
       "id": "level_1",

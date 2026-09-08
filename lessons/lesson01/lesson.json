@@ -3,6 +3,10 @@
   "title": "Lesson 1 - Robot Demo",
   "description": "Lesson 1 introduces SpiderPi with a beginner movement lesson plus a full demo notebook showing all major robot features.",
   "summary": "Lesson 1 introduces SpiderPi with a beginner movement lesson plus a full demo notebook showing all major robot features.",
+  "tags": [
+    "Robot control"
+  ],
+  "has_demo": true,
   "levels": [
     {
       "id": "level_1",

@@ -3,6 +3,11 @@
   "title": "Lesson 7 - Face, Shape, and Line Tools",
   "description": "Explore face detection, shape recognition, and patrol logic.",
   "summary": "Explore face detection, shape recognition, and patrol logic.",
+  "tags": [
+    "AI: Faces",
+    "Line following"
+  ],
+  "has_demo": false,
   "levels": [
     {
       "id": "level_1",

@@ -3,6 +3,10 @@
   "title": "Lesson 5 - Camera and Colour Vision",
   "description": "Capture images and detect coloured targets.",
   "summary": "Capture images and detect coloured targets.",
+  "tags": [
+    "Colour detection"
+  ],
+  "has_demo": false,
   "levels": [
     {
       "id": "level_1",

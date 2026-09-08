@@ -3,6 +3,10 @@
   "title": "Lesson 13 - Rock Paper Scissors Vision",
   "description": "Use MediaPipe hand recognition so SpiderPi can play rock, paper, scissors.",
   "summary": "Use MediaPipe hand recognition so SpiderPi can play rock, paper, scissors.",
+  "tags": [
+    "AI: Pose & hands"
+  ],
+  "has_demo": false,
   "levels": [
     {
       "id": "level_1",

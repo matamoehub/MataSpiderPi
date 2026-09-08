@@ -3,6 +3,11 @@
   "title": "Lesson 10 - Sorting Challenge",
   "description": "Sort coloured objects into zones.",
   "summary": "Sort coloured objects into zones.",
+  "tags": [
+    "Arm & gripper",
+    "Colour detection"
+  ],
+  "has_demo": false,
   "levels": [
     {
       "id": "level_1",

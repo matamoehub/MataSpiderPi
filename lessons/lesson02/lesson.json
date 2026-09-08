@@ -3,6 +3,10 @@
   "title": "Lesson 2 - Hexapod Movement",
   "description": "Learn gait-style movement and side-stepping.",
   "summary": "Learn gait-style movement and side-stepping.",
+  "tags": [
+    "Robot control"
+  ],
+  "has_demo": false,
   "levels": [
     {
       "id": "level_1",

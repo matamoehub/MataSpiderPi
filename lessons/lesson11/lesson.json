@@ -3,6 +3,11 @@
   "title": "Lesson 11 - Kick and Carry",
   "description": "Use SpiderPi for transport and kicking challenges.",
   "summary": "Use SpiderPi for transport and kicking challenges.",
+  "tags": [
+    "Robot control",
+    "Arm & gripper"
+  ],
+  "has_demo": false,
   "levels": [
     {
       "id": "level_1",
